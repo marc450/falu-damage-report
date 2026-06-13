@@ -12,7 +12,7 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 ## Hard constraints (do not break)
 - Keep everything in `index.html`. No build step, no framework, no fonts fetched
   over the network. Network calls: Supabase (auth, storage, REST) — see "Central
-  reporting" — and one lazy-loaded library: `html2pdf.bundle.min.js` from cdnjs,
+  reporting" — and two lazy-loaded libraries (html2canvas + jsPDF, cdnjs),
   fetched only on first PDF download (see PDF below).
 - The app is online/central now (requires login). It **autosaves** to Supabase:
   any edit marks the report dirty, debounces ~1.2s, then upserts (`scheduleSave`
@@ -46,18 +46,21 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   danger})` (a Falu-styled `#modal`, returns a Promise<boolean>) — never the
   browser `confirm()`/`alert()`. `danger:true` makes the OK button Falu-red.
 - PDF is generated client-side for a direct download (no browser print dialog,
-  no header/footer stamp). `downloadPdf()` lazy-loads html2pdf, ensures defect
-  photos are data URLs (`ensurePhotoDataUrls` — avoids cross-origin canvas taint),
-  builds the hidden `.print-doc` (`buildPrint`), and renders it to A4 via
-  html2pdf, then stamps "Seite X / Y" per page with jsPDF and saves. The
-  `.print-doc` is laid out at a fixed 760px width inside `.print-host`
-  (`position:absolute;height:0;overflow:hidden`) so it's measurable but invisible
-  on screen — do NOT position `.print-doc` itself (html2pdf clones it; an absolute/
-  fixed clone collapses the capture to 0 height). All `.p-*` styles live in normal
-  CSS (not `@media print`) so html2canvas sees them. No footer (header address
-  suffices); signature blocks have blank space above the line for a handwritten
-  signature. Output is rasterized (image-based) — keep `html2canvas.scale` ~1.6 to
-  balance crispness against file size.
+  no header/footer stamp). `downloadPdf()` lazy-loads **html2canvas + jsPDF**
+  (cdnjs, via `loadPdfLibs`), ensures defect photos are data URLs
+  (`ensurePhotoDataUrls` — avoids cross-origin canvas taint), builds the hidden
+  `.print-doc` (`buildPrint`), renders it to ONE canvas, then **slices that canvas
+  into A4 page-height chunks itself** (each placed at the top margin) and stamps
+  "Seite X / Y" per page. Do NOT use html2pdf.js's own pagination — its flow
+  splitter mis-placed content (header pushed to page bottom, tables clipped); the
+  manual slice keeps every page top-anchored. The `.print-doc` is laid out at a
+  fixed 760px width inside `.print-host` (`position:absolute;height:0;overflow:hidden`)
+  so it's measurable but invisible on screen — do NOT position `.print-doc` itself
+  (an absolute/fixed clone collapses the capture to 0 height). All `.p-*` styles
+  live in normal CSS (not `@media print`) so html2canvas sees them. No footer
+  (header address suffices); signature blocks have blank space above the line.
+  Output is rasterized (image-based) — `html2canvas.scale` 2 balances crispness vs
+  size; content may split across a page boundary (acceptable).
 - Language: the **app UI/chrome is German** (top nav buttons, reports overview,
   user admin, toasts, dialogs, login/reset, autosave status, "PDF erstellen").
   The **protocol/report itself is English-only** (per request): the report-form
