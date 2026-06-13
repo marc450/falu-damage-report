@@ -157,7 +157,11 @@
 
   .btn--navy{background:var(--navy);color:#fff;border-color:var(--navy)}
   .btn--navy:hover{background:var(--navy-700);border-color:var(--navy-700)}
-  .toolbtns{flex-wrap:wrap}
+  .toolbtns{flex-wrap:wrap;align-items:center}
+  .savestate{font-family:var(--font-mono);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;
+             color:var(--ink-muted);white-space:nowrap;padding:0 4px}
+  .savestate.ok{color:var(--navy)}
+  .savestate.err{color:var(--falu-red);cursor:pointer;text-decoration:underline}
   @media(max-width:560px){.toolbtns .btn{flex:1 1 calc(50% - 4px)}}
 
   /* ---------- auth gate ---------- */
@@ -260,7 +264,9 @@
   /* ---------- print / PDF ---------- */
   .print-doc{display:none}
   @media print{
-    @page{size:A4;margin:13mm 12mm}
+    @page{size:A4;margin:14mm 12mm 16mm;
+      @bottom-right{content:"Seite " counter(page) " / " counter(pages);
+        font-family:"JetBrains Mono","IBM Plex Mono",ui-monospace,monospace;font-size:8px;color:#8a8a8a}}
     body{background:#fff}
     .app{display:none !important}
     .auth,.toast,.panel,.modal{display:none !important}
@@ -304,7 +310,7 @@
     .p-photos img{width:31%;max-height:150px;object-fit:cover;border:1px solid var(--rule)}
     .p-sign{margin-top:18px;display:flex;gap:40px;page-break-inside:avoid}
     .p-sign-box{flex:1;display:flex;flex-direction:column}
-    .p-sign-name{min-height:22px;font-size:11px;font-weight:600;color:var(--ink);
+    .p-sign-name{min-height:52px;font-size:11px;font-weight:600;color:var(--ink);
                  padding:0 2px 3px}
     .p-sign-line{border-top:1px solid var(--ink-muted)}
     .p-sign-role{padding-top:4px;font-family:var(--font-mono);font-size:9px;
@@ -324,11 +330,8 @@
       <img id="logoImg" class="applogo" alt="Falu">
     </div>
     <div class="toolbtns">
-      <button class="btn btn--ghost" id="btnReports">Berichte</button>
-      <button class="btn btn--ghost" id="btnNew">Neu</button>
-      <button class="btn btn--ghost" id="btnUsers" style="display:none">Benutzer</button>
+      <span class="savestate" id="saveStatus"></span>
       <button class="btn btn--primary" id="btnPdf">PDF erstellen</button>
-      <button class="btn btn--navy" id="btnSave">Speichern</button>
     </div>
   </div>
 
@@ -530,7 +533,7 @@ SIGN.forEach(([key,de,en,type])=>{
 const defectsEl=document.getElementById("defects");
 function newDefect(){return {id:uid++,baugruppe:"",position:"",kategorie:"",verursacher:"",verursacherDetail:"",schweregrad:"",beschreibung:"",ursache:"",sofort:"",empfohlen:"",status:"offen",photos:[]};}
 function addDefect(d){state.defects.push(d||newDefect());render();}
-function removeDefect(id){state.defects=state.defects.filter(x=>x.id!==id);render();}
+function removeDefect(id){state.defects=state.defects.filter(x=>x.id!==id);render();scheduleSave();}
 
 function fieldEl(d,key,de,en,multiline){
   const f=document.createElement("div"); f.className="field";
@@ -622,7 +625,7 @@ function renderDefect(d,index){
     const t=document.createElement("div"); t.className="thumb";
     const im=document.createElement("img"); im.src=photoSrc(src); t.appendChild(im);
     const x=document.createElement("button"); x.className="x"; x.textContent="×";
-    x.addEventListener("click",()=>{d.photos.splice(pi,1);render();}); t.appendChild(x); row.appendChild(t);
+    x.addEventListener("click",()=>{d.photos.splice(pi,1);render();scheduleSave();}); t.appendChild(x); row.appendChild(t);
   });
   const add=document.createElement("label"); add.className="addphoto"; add.innerHTML=`+ Foto`;
   const fin=document.createElement("input"); fin.type="file"; fin.accept="image/*";
@@ -630,7 +633,7 @@ function renderDefect(d,index){
   fin.addEventListener("change",async ()=>{
     const files=Array.from(fin.files||[]);
     for(const file of files){const url=await fileToDataURL(file); d.photos.push(url);}
-    render();
+    render(); scheduleSave();
   });
   add.appendChild(fin); row.appendChild(add); pf.appendChild(row); body.appendChild(pf);
 
@@ -651,7 +654,6 @@ function render(){
     e.textContent="Noch keine Mängel erfasst. · No defects recorded yet."; defectsEl.appendChild(e);
   } else state.defects.forEach((d,i)=>defectsEl.appendChild(renderDefect(d,i)));
   updateChips();
-  updateSendLabel();
 }
 function syncHeaderInputs(){
   metaGrid.querySelectorAll("input,select").forEach(el=>{
@@ -662,10 +664,6 @@ function syncHeaderInputs(){
     el.value=v;
   });
   signGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
-}
-function updateSendLabel(){
-  const b=document.getElementById("btnSave");
-  if(b) b.textContent=state.reportId?"Aktualisieren":"Speichern";
 }
 
 function isDataUrl(p){return typeof p==="string"&&p.indexOf("data:")===0;}
@@ -748,10 +746,16 @@ function buildPrint(){
         <div class="p-sign-role">Installierende:r Monteur:in FALU · Installing mechanic FALU</div>
         <div class="p-sign-meta">Ort, Datum / Unterschrift · Place, date / signature</div>
       </div>
-    </div>
-    <div class="p-foot">${ADDR.name} · ${ADDR.line1} · ${ADDR.line2}</div>`;
+    </div>`;
 }
-document.getElementById("btnPdf").addEventListener("click",()=>{buildPrint();window.print();});
+document.getElementById("btnPdf").addEventListener("click",async()=>{
+  await flushSave();
+  buildPrint();
+  const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
+  const prev=document.title; document.title="Maengelprotokoll_"+safe;
+  window.print();
+  setTimeout(()=>{document.title=prev;},800);
+});
 
 /* ---------- toast ---------- */
 let toastTimer=null;
@@ -830,7 +834,6 @@ function establishSession(access,refresh,user,expiresAt){
   document.getElementById("authPass").value="";
   authGate.style.display="none";
   document.getElementById("resetGate").style.display="none";
-  document.getElementById("btnUsers").style.display=isAdmin?"":"none";
   document.getElementById("btnUsers2").style.display=isAdmin?"":"none";
   updateAuthStatus();
   loadProfiles(); // fill the technician dropdown
@@ -944,7 +947,6 @@ async function restoreSession(){
 }
 
 function logout(){session=null; clearSavedSession();
-  document.getElementById("btnUsers").style.display="none";
   document.getElementById("btnUsers2").style.display="none";
   reportsView.classList.remove("show");usersView.classList.remove("show");
   updateAuthStatus();authGate.style.display="flex";}
@@ -995,12 +997,35 @@ async function resolveSignedUrls(){
   for(const p of paths){try{await signPath(p);}catch(e){/* leave blank thumb */}}
 }
 
-async function sendReport(){
-  if(!session){authGate.style.display="flex";return;}
-  const btn=document.getElementById("btnSave");
-  btn.disabled=true;
+/* ---------- autosave ---------- */
+let saving=false, pendingSave=false, saveTimer=null, dirty=false;
+function setSaveStatus(s){
+  const el=document.getElementById("saveStatus"); if(!el)return;
+  const map={pending:"Änderungen…",saving:"Speichern…",saved:"Gespeichert ✓",error:"Nicht gespeichert – erneut",idle:""};
+  el.textContent=map[s]||"";
+  el.className="savestate"+(s==="error"?" err":s==="saved"?" ok":"");
+}
+function hasContent(){
+  const h=state.header;
+  if(state.reportId) return true;
+  if(h.kunde||h.serienNr||h.maschinentyp||h.standort||h.monteur||h.satVerantwortlich||h.faluMonteur) return true;
+  return state.defects.some(d=>d.baugruppe||d.position||d.kategorie||d.verursacher||d.schweregrad||d.beschreibung||d.ursache||d.sofort||d.empfohlen||(d.photos&&d.photos.length));
+}
+function scheduleSave(){
+  if(!session||!hasContent()) return;
+  dirty=true; setSaveStatus("pending");
+  if(saveTimer)clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{saveTimer=null; saveReport();},1200);
+}
+async function flushSave(){
+  if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
+  if(dirty&&session&&hasContent()) await saveReport();
+}
+async function saveReport(){
+  if(!session||!hasContent()) return;
+  if(saving){pendingSave=true;return;}
+  saving=true; dirty=false; setSaveStatus("saving");
   const updating=!!state.reportId;
-  toast(updating?"Wird aktualisiert…":"Wird gesendet…");
   try{
     const reportId=state.reportId||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+uid);
     const h=state.header;
@@ -1015,10 +1040,11 @@ async function sendReport(){
           const up=await authFetch(SUPABASE_URL+"/storage/v1/object/"+SB_BUCKET+"/"+path,
             {method:"POST",headers:{"Content-Type":blob.type,"x-upsert":"true"},body:blob});
           if(!up.ok){const t=await up.text(); throw new Error("Foto-Upload fehlgeschlagen ("+up.status+"): "+t.slice(0,140));}
+          signedCache[path]=src; // keep showing the image without a sign round-trip
           photos.push(path);
         } else { photos.push(src); } // already-uploaded path, keep as-is
       }
-      defectsOut.push(Object.assign({},d,{photos:photos}));
+      defectsOut.push({photos:photos});
     }
     const body={
       datum:dateOrNull(h.datum), maschinentyp:h.maschinentyp||null, serien_nr:h.serienNr||null,
@@ -1026,7 +1052,7 @@ async function sendReport(){
       monteur:h.monteur||null, sat_verantwortlich:h.satVerantwortlich||null, falu_monteur:h.faluMonteur||null,
       defect_count:state.defects.length,
       safety_count:state.defects.filter(x=>x.schweregrad==="safety").length,
-      data:{header:h,defects:defectsOut,bucket:SB_BUCKET}
+      data:{header:h,defects:state.defects.map((d,i)=>Object.assign({},d,{photos:defectsOut[i]?defectsOut[i].photos:d.photos})),bucket:SB_BUCKET}
     };
     let res;
     if(updating){
@@ -1039,20 +1065,25 @@ async function sendReport(){
         {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
     }
     if(!res.ok){const t=await res.text(); throw new Error("Speichern fehlgeschlagen ("+res.status+"): "+t.slice(0,160));}
-    // reflect persisted state locally so further edits update the same row
     state.reportId=reportId;
-    state.defects=defectsOut.map((d,i)=>Object.assign({},state.defects[i],{photos:d.photos}));
-    updateSendLabel();
+    // update photo paths in place so live DOM closures keep working
+    state.defects.forEach((d,i)=>{ if(defectsOut[i]) d.photos=defectsOut[i].photos; });
     if(!updating) history.replaceState(null,"","#/report/"+reportId);
-    toast(updating?"Aktualisiert ✓":"An Zentrale gesendet ✓","ok");
+    setSaveStatus(dirty?"pending":"saved");
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex"; toast("Sitzung abgelaufen — bitte neu anmelden.","err");}
-    else toast("Fehler: "+e.message+" — bitte später erneut versuchen.","err");
+    dirty=true;
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";}
+    setSaveStatus("error");
+    console.warn("Autosave fehlgeschlagen:",e&&e.message||e);
   }finally{
-    btn.disabled=false;
+    saving=false;
+    if(pendingSave){pendingSave=false; saveReport();}
   }
 }
-document.getElementById("btnSave").addEventListener("click",sendReport);
+document.getElementById("saveStatus").addEventListener("click",()=>{if(dirty||document.getElementById("saveStatus").classList.contains("err"))saveReport();});
+// autosave on any field edit within the form
+document.querySelector(".app").addEventListener("input",scheduleSave);
+document.querySelector(".app").addEventListener("change",scheduleSave);
 
 /* ---------- routing + views ---------- */
 const reportsView=document.getElementById("reportsView");
@@ -1065,6 +1096,7 @@ function showOnly(view){
 function navigate(h){ if((location.hash||"")===h) router(); else location.hash=h; }
 async function router(){
   if(!session) return;
+  await flushSave(); // persist any pending edits before leaving the form
   const h=location.hash||"#/reports";
   if(h.indexOf("#/users")===0){
     if(!session.isAdmin){navigate("#/reports");return;}
@@ -1076,15 +1108,10 @@ async function router(){
 }
 window.addEventListener("hashchange",router);
 
-function confirmDiscard(){
-  if((state.defects.length>1)||state.reportId||state.header.kunde||state.header.serienNr)
-    return modalConfirm("Neues Protokoll? Nicht gesendete Änderungen gehen verloren.",{okLabel:"Verwerfen",danger:true});
-  return Promise.resolve(true);
-}
 function newReport(){
   state.header={datum:new Date().toISOString().slice(0,10)};
   state.defects=[]; state.reportId=null; state.reportEmail=null;
-  uid=1; syncHeaderInputs(); addDefect();
+  uid=1; dirty=false; setSaveStatus("idle"); syncHeaderInputs(); addDefect();
 }
 
 async function openReports(){
@@ -1142,7 +1169,7 @@ async function openReport(id){
     state.reportId=row.id; state.reportEmail=row.created_by_email||null;
     uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
     await resolveSignedUrls();
-    syncHeaderInputs(); render();
+    dirty=false; setSaveStatus("idle"); syncHeaderInputs(); render();
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
     toast("Öffnen fehlgeschlagen: "+e.message,"err");
@@ -1164,7 +1191,7 @@ async function deleteReport(id){
     const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id),
       {method:"DELETE",headers:{"Prefer":"return=minimal"}});
     if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
-    if(state.reportId===id){state.reportId=null;state.reportEmail=null;updateSendLabel();}
+    if(state.reportId===id){state.reportId=null;state.reportEmail=null;dirty=false;setSaveStatus("idle");}
     toast("Bericht gelöscht","ok");
     navigate("#/reports");
   }catch(e){
@@ -1172,12 +1199,10 @@ async function deleteReport(id){
     toast("Löschen fehlgeschlagen: "+e.message,"err");
   }
 }
-document.getElementById("btnReports").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("formHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("reportsHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("usersHome").addEventListener("click",()=>navigate("#/reports"));
-document.getElementById("btnNew").addEventListener("click",async()=>{if(await confirmDiscard())navigate("#/new");});
-document.getElementById("btnNewReport").addEventListener("click",async()=>{if(await confirmDiscard())navigate("#/new");});
+document.getElementById("btnNewReport").addEventListener("click",()=>navigate("#/new"));
 document.getElementById("btnReportsLogout").addEventListener("click",logout);
 document.getElementById("btnUsersLogout").addEventListener("click",logout);
 
@@ -1265,7 +1290,6 @@ async function renameUser(id,current){
   try{ await callAdmin("rename",{id,name}); toast("Name gespeichert ✓","ok"); loadUsers(); loadProfiles(); }
   catch(e){ toast("Fehler: "+e.message,"err"); }
 }
-document.getElementById("btnUsers").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnUsers2").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnCreateUser").addEventListener("click",createUser);
 

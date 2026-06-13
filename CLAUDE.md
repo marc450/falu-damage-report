@@ -13,10 +13,15 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Keep everything in `index.html`. No build step, no framework, no CDNs, no
   fonts fetched over the network. The ONLY network calls are to Supabase
   (auth, storage, REST) — see "Central reporting" below.
-- The app is online/central now (requires login). "Speichern" saves the report
-  to Supabase (upsert). The old local JSON export/import (Laden/Speichern-to-file)
-  and the separate "Senden" button were removed. Report draft state is still
-  in-memory (a reload loses an unsaved draft) — only the auth session persists.
+- The app is online/central now (requires login). It **autosaves** to Supabase:
+  any edit marks the report dirty, debounces ~1.2s, then upserts (`scheduleSave`
+  → `saveReport`); `flushSave()` runs at the top of `router()` so navigating away
+  persists pending edits first. A `#saveStatus` indicator in the form header shows
+  Änderungen…/Speichern…/Gespeichert ✓/error (click to retry). There is NO manual
+  save button. New reports aren't created until `hasContent()` is true. After a
+  photo uploads, `signedCache[path]=dataURL` so the thumbnail keeps showing
+  without a sign round-trip; photo paths are written back into `state.defects`
+  in place (don't replace the defect objects — live DOM closures hold references).
 - `localStorage` is used ONLY to persist the auth session: `falu_session` holds
   the Supabase refresh token + the last access token + its `expiresAt`, so a
   reload stays signed in (`saveSession`, `restoreSession`, cleared on logout).
@@ -33,8 +38,13 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   danger})` (a Falu-styled `#modal`, returns a Promise<boolean>) — never the
   browser `confirm()`/`alert()`. `danger:true` makes the OK button Falu-red.
 - The PDF is produced by building a hidden `.print-doc` from state and calling
-  `window.print()`. Screen UI is hidden in `@media print`; the print doc is
-  hidden on screen. Keep this split.
+  `window.print()` (sets `document.title` first so "Save as PDF" suggests a good
+  filename — a true no-dialog download would need a bundled PDF lib, intentionally
+  avoided). Screen UI is hidden in `@media print`; the print doc is hidden on
+  screen. Keep this split. No footer (header address suffices). Page numbers via
+  `@page { @bottom-right { content: counter(page) "/" counter(pages) } }`
+  (best-effort; not all print engines render margin boxes). Signature blocks have
+  generous blank space above the line for a handwritten signature.
 - Language: the **app UI/chrome is German-only** (navigation, reports overview,
   user admin, toasts, dialogs). **Customer-facing content stays bilingual**
   (German primary, English secondary): the report-creation form fields/section
