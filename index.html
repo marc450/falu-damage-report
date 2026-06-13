@@ -375,7 +375,7 @@
     <div id="defects"></div>
     <button class="addcard" id="btnAdd">+&nbsp;&nbsp;Mangel hinzufügen · Add defect</button>
 
-    <div class="section-label"><span class="num">03</span><span>Abnahme &amp; Unterschriften · Acceptance &amp; signatures</span><span class="rule"></span></div>
+    <div class="section-label"><span class="num">03</span><span>Unterschriften · Signatures</span><span class="rule"></span></div>
     <div class="grid2" id="signGrid"></div>
 
     <div class="appfoot">
@@ -516,7 +516,7 @@ const META=[
   ["monteur","Monteur(e) / Techniker","Technician(s)","userselect"]
 ];
 const SIGN=[
-  ["satVerantwortlich","Verantwortliche:r Site Acceptance Test","Responsible for Site Acceptance Test","text"],
+  ["satVerantwortlich","Verantwortliche:r Kunde","Responsible person (customer)","text"],
   ["faluMonteur","Installierende:r Monteur:in FALU","Installing mechanic FALU","text"]
 ];
 const KATEGORIE=[
@@ -797,12 +797,12 @@ function buildPrint(){
           <td class="p-lab">Davon sicherheitskritisch<em>Safety-critical</em></td>
           <td style="font-weight:600;color:${safety>0?'rgb(236,28,36)':'#002e5b'}">${safety}</td></tr>
     </table>
-    <div class="p-eyebrow"><b>04</b> &nbsp; Abnahme &amp; Unterschriften · Acceptance &amp; signatures</div>
+    <div class="p-eyebrow"><b>04</b> &nbsp; Unterschriften · Signatures</div>
     <div class="p-sign">
       <div class="p-sign-box">
         <div class="p-sign-name">${esc(h.satVerantwortlich||"")}</div>
         <div class="p-sign-line"></div>
-        <div class="p-sign-role">Verantwortliche:r Site Acceptance Test · Responsible for Site Acceptance Test</div>
+        <div class="p-sign-role">Verantwortliche:r Kunde · Responsible person (customer)</div>
         <div class="p-sign-meta">Ort, Datum / Unterschrift · Place, date / signature</div>
       </div>
       <div class="p-sign-box">
@@ -1268,8 +1268,8 @@ function renderView(){
     if(d.photos&&d.photos.length) html+=`<div class="vphotos">`+d.photos.map(p=>`<img src="${photoSrc(p)}">`).join("")+`</div>`;
     html+=`</div>`;
   });
-  html+=`<div class="vsec">Abnahme &amp; Unterschriften</div>`;
-  html+=`<div class="vsign"><div><b>${esc(h.satVerantwortlich||"—")}</b><span>Verantwortliche:r Site Acceptance Test</span></div>`+
+  html+=`<div class="vsec">Unterschriften</div>`;
+  html+=`<div class="vsign"><div><b>${esc(h.satVerantwortlich||"—")}</b><span>Verantwortliche:r Kunde</span></div>`+
         `<div><b>${esc(h.faluMonteur||"—")}</b><span>Installierende:r Monteur:in FALU</span></div></div>`;
   document.getElementById("viewBody").innerHTML=html;
 }
