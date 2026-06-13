@@ -72,6 +72,12 @@
   .field label em{font-style:normal;font-weight:400;color:var(--ink-muted);
                   font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;
                   text-transform:uppercase;margin-left:4px}
+  .field-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .ai-btn{flex-shrink:0;border:1px solid var(--navy);background:#fff;color:var(--navy);
+          font-family:var(--font-mono);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;
+          padding:3px 7px;cursor:pointer;line-height:1.5;white-space:nowrap}
+  .ai-btn:hover{background:var(--navy);color:#fff}
+  .ai-btn:disabled{opacity:.5;cursor:default}
   .field input,.field select,.field textarea{
     font-family:var(--font-sans);font-size:16px;color:var(--ink);background:var(--bg);
     border:1px solid var(--rule);padding:10px 11px;width:100%;min-width:0}
@@ -576,10 +582,30 @@ function removeDefect(id){state.defects=state.defects.filter(x=>x.id!==id);rende
 
 function fieldEl(d,key,de,en,multiline){
   const f=document.createElement("div"); f.className="field";
-  f.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  const head=document.createElement("div"); head.className="field-head";
+  head.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  const ai=document.createElement("button"); ai.type="button"; ai.className="ai-btn";
+  ai.textContent="✨ EN"; ai.title="Mit KI auf Englisch umschreiben";
+  head.appendChild(ai); f.appendChild(head);
   const inp=document.createElement(multiline?"textarea":"input");
   inp.value=d[key]||""; inp.addEventListener("input",()=>{d[key]=inp.value});
-  f.appendChild(inp); return f;
+  f.appendChild(inp);
+  ai.addEventListener("click",async()=>{
+    const val=(inp.value||"").trim();
+    if(!val){toast("Bitte zuerst Text eingeben.","err");return;}
+    ai.disabled=true; const prev=ai.textContent; ai.textContent="…";
+    try{
+      const r=await authFetch(SUPABASE_URL+"/functions/v1/falu-rewrite",
+        {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:val})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||("Fehler "+r.status));
+      inp.value=j.text||val; d[key]=inp.value; scheduleSave();
+    }catch(e){
+      if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";}
+      else toast("KI-Fehler: "+e.message,"err");
+    }finally{ ai.disabled=false; ai.textContent=prev; }
+  });
+  return f;
 }
 function selectField(d,key,de,en,opts,withFirst){
   const f=document.createElement("div"); f.className="field";

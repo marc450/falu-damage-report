@@ -34,6 +34,13 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   reports small. The file input has NO `capture` attribute, so phones offer
   camera OR existing library. On Speichern, data-URL photos are converted to
   Blobs and uploaded to Supabase Storage; the row stores their paths.
+- AI text rewrite: each defect free-text field (`fieldEl`) has a "✨ EN" button
+  that sends the field's current text to the **`falu-rewrite` Edge Function**
+  (`supabase/functions/falu-rewrite/index.ts`) and replaces it with clear English
+  (still editable; triggers autosave). The function is authenticated (any logged-in
+  user), keeps the Anthropic API key server-side (`ANTHROPIC_API_KEY` secret, set
+  via `supabase secrets set`), and calls Claude (`claude-opus-4-8`, thinking
+  disabled, output-only system prompt) via raw HTTPS. Incurs Anthropic API cost.
 - Confirmations use the app-native `modalConfirm(message, {okLabel, cancelLabel,
   danger})` (a Falu-styled `#modal`, returns a Promise<boolean>) — never the
   browser `confirm()`/`alert()`. `danger:true` makes the OK button Falu-red.
