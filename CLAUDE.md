@@ -53,10 +53,12 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   kept as-is (no re-upload). The row stores broken-out header columns + `data`
   JSONB holding the full defect list with photo *paths*, not base64. Empty dates
   are sent as `null`. The Senden button relabels to "Aktualisieren" when editing.
-- Reports overview (`#reportsView`): lists rows (own, or all for admin) with
-  Öffnen (loads back into the form — existing photos shown via signed URLs,
-  resolved into `signedCache`) and Löschen (deletes row + best-effort storage
-  cleanup). "Neu" starts a blank report.
+- The reports overview (`#reportsView`) is the **landing view after login**
+  (`establishSession` calls `openReports`). It lists rows (own, or all for admin),
+  each named **"{date} · {Kunde}"**. Clicking a row opens it into the editable
+  form (existing photos shown via signed URLs, resolved into `signedCache`); the
+  per-row Löschen button deletes the row + best-effort storage cleanup. The bar
+  has "+ Neuer Bericht", "Benutzer" (admin only), "Abmelden", "Schliessen".
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.
