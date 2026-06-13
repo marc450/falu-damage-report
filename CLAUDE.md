@@ -87,11 +87,16 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - All views share the same header: a logo-only FALU lockup (no wordmark text) on
   the left that links to `#/reports`, plus context buttons on the right.
 - The reports overview (`#reportsView`) is the landing view after login. It lists
-  rows (own, or all for admin), each named **"{date} · {Kunde}"**. Clicking a row
-  opens it into the editable form (existing photos shown via signed URLs, resolved
-  into `signedCache`); the per-row Löschen button deletes the row + best-effort
-  storage cleanup. The bar has "+ Neues Mängelprotokoll", "Benutzer" (admin only),
-  "Abmelden". No "Schliessen".
+  rows (own, or all for admin), each named **"{date} · {Kunde} · {creator name}"**
+  (creator name resolved from `PROFILES` via `nameForEmail`). The per-row Löschen
+  button deletes the row + best-effort storage cleanup. The bar has
+  "+ Neues Mängelprotokoll", "Benutzer" (admin only), "Abmelden".
+- Routes for a single report: `#/report/<id>` = **read-only view** (`#viewReport`,
+  `renderView()` from state — meta table + defect cards + signatures, with
+  Bearbeiten + "PDF herunterladen" buttons); `#/report/<id>/edit` = editable form.
+  Clicking a row opens the read-only view; `loadReportData(id)` fetches+sets state
+  (photos via signed URLs into `signedCache`) for both. `downloadPdf()` is shared
+  by the form and view PDF buttons.
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.

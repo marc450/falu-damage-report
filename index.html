@@ -225,6 +225,29 @@
   .lockup--link:hover .lockup-meta strong{color:var(--falu-red)}
   .page-title{font-size:20px;color:var(--navy);font-weight:600;letter-spacing:-0.01em;margin:0 0 18px}
 
+  /* read-only report view */
+  .vmeta{border:1px solid var(--rule);margin-bottom:8px}
+  .vrow{display:flex;gap:12px;border-bottom:1px solid var(--rule-soft);padding:9px 13px}
+  .vrow:last-child{border-bottom:none}
+  .vlabel{width:38%;flex-shrink:0;color:var(--navy);font-weight:600;font-size:13px}
+  .vval{flex:1;min-width:0;color:var(--ink);font-size:14px;white-space:pre-wrap;word-break:break-word}
+  .vsec{display:flex;align-items:center;gap:12px;font-family:var(--font-mono);font-size:11px;
+        text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-muted);
+        border-bottom:1px solid var(--navy);padding-bottom:4px;margin:26px 0 12px}
+  .vcard{border:1px solid var(--rule);border-left:4px solid var(--rule);margin-bottom:12px}
+  .vcard.sev-safety{border-left-color:var(--falu-red)}
+  .vcard.sev-func{border-left-color:var(--navy)}
+  .vcard.sev-minor{border-left-color:var(--ink-muted)}
+  .vcard-bar{background:var(--navy);color:#fff;padding:7px 11px;display:flex;justify-content:space-between;
+             align-items:center;font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em}
+  .vphotos{display:flex;flex-wrap:wrap;gap:8px;padding:11px 13px}
+  .vphotos img{width:120px;height:120px;object-fit:cover;border:1px solid var(--rule)}
+  .vsign{display:flex;gap:20px;margin-top:8px}
+  @media(max-width:560px){.vsign{flex-direction:column}}
+  .vsign>div{flex:1;border:1px solid var(--rule);padding:14px}
+  .vsign b{display:block;color:var(--ink);font-size:14px;min-height:34px}
+  .vsign span{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--ink-muted)}
+
   .rep{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;
        border:1px solid var(--rule);border-left:4px solid var(--navy);padding:12px 14px;margin-bottom:10px;
        transition:background 120ms ease,border-color 120ms ease}
@@ -398,6 +421,21 @@
       </div>
       <div id="usersList"></div>
     </div>
+  </div>
+</div>
+
+<div class="panel" id="viewReport">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <div class="lockup lockup--link" id="viewHome" title="Zu allen Berichten">
+        <img class="applogo" alt="Falu">
+      </div>
+      <div class="toolbtns">
+        <button class="btn btn--ghost" id="btnViewEdit">Bearbeiten</button>
+        <button class="btn btn--primary" id="btnViewPdf">PDF herunterladen</button>
+      </div>
+    </div>
+    <div class="panel-body" id="viewBody"></div>
   </div>
 </div>
 
@@ -748,14 +786,7 @@ function buildPrint(){
       </div>
     </div>`;
 }
-document.getElementById("btnPdf").addEventListener("click",async()=>{
-  await flushSave();
-  buildPrint();
-  const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
-  const prev=document.title; document.title="Maengelprotokoll_"+safe;
-  window.print();
-  setTimeout(()=>{document.title=prev;},800);
-});
+document.getElementById("btnPdf").addEventListener("click",async()=>{ await flushSave(); downloadPdf(); });
 
 /* ---------- toast ---------- */
 let toastTimer=null;
@@ -836,7 +867,8 @@ function establishSession(access,refresh,user,expiresAt){
   document.getElementById("resetGate").style.display="none";
   document.getElementById("btnUsers2").style.display=isAdmin?"":"none";
   updateAuthStatus();
-  loadProfiles(); // fill the technician dropdown
+  // names ready for the technician dropdown + report-list creator names
+  loadProfiles().then(()=>{ if(reportsView.classList.contains("show")) openReports(); });
   // land on the requested route (deep link) or the reports overview
   navigate((location.hash&&location.hash.indexOf("#/")===0)?location.hash:"#/reports");
 }
@@ -1088,10 +1120,12 @@ document.querySelector(".app").addEventListener("change",scheduleSave);
 /* ---------- routing + views ---------- */
 const reportsView=document.getElementById("reportsView");
 const usersView=document.getElementById("usersView");
+const viewReport=document.getElementById("viewReport");
 
 function showOnly(view){
   reportsView.classList.toggle("show",view==="reports");
   usersView.classList.toggle("show",view==="users");
+  viewReport.classList.toggle("show",view==="view");
 }
 function navigate(h){ if((location.hash||"")===h) router(); else location.hash=h; }
 async function router(){
@@ -1102,7 +1136,15 @@ async function router(){
     if(!session.isAdmin){navigate("#/reports");return;}
     showOnly("users"); await loadUsers(); return;
   }
-  if(h.indexOf("#/report/")===0){ showOnly("form"); await openReport(decodeURIComponent(h.slice(9))); return; }
+  if(h.indexOf("#/report/")===0){
+    const rest=h.slice(9), editing=rest.endsWith("/edit");
+    const id=decodeURIComponent(editing?rest.slice(0,-5):rest);
+    const ok=await loadReportData(id);
+    if(!ok){ navigate("#/reports"); return; }
+    if(editing){ showOnly("form"); dirty=false; setSaveStatus("idle"); syncHeaderInputs(); render(); }
+    else { showOnly("view"); renderView(); }
+    return;
+  }
   if(h==="#/new"){ showOnly("form"); newReport(); return; }
   showOnly("reports"); await openReports();
 }
@@ -1138,10 +1180,10 @@ function renderReportList(rows){
     const el=document.createElement("div");
     el.className="rep"+((row.safety_count>0)?" has-safety":"");
     const date=row.datum||(row.created_at?row.created_at.slice(0,10):"");
-    const title=(date||"—")+" · "+(row.kunde||"Ohne Kunde");
+    const creator=nameForEmail(row.created_by_email);
+    const title=(date||"—")+" · "+(row.kunde||"Ohne Kunde")+(creator?(" · "+creator):"");
     let meta=(row.serien_nr?(row.serien_nr+" · "):"")+(row.maschinentyp||"—")+" · "+(row.defect_count||0)+" Mängel";
     if(row.safety_count>0) meta+=" · "+row.safety_count+" sicherheitskritisch";
-    if(session.isAdmin&&row.created_by_email) meta+=" · "+row.created_by_email;
     const main=document.createElement("div"); main.className="rep-main";
     main.innerHTML="<b>"+esc(title)+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
     const act=document.createElement("div"); act.className="rep-actions";
@@ -1153,7 +1195,7 @@ function renderReportList(rows){
     listEl.appendChild(el);
   });
 }
-async function openReport(id){
+async function loadReportData(id){
   try{
     const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id)+"&select=*");
     const arr=await r.json();
@@ -1169,11 +1211,47 @@ async function openReport(id){
     state.reportId=row.id; state.reportEmail=row.created_by_email||null;
     uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
     await resolveSignedUrls();
-    dirty=false; setSaveStatus("idle"); syncHeaderInputs(); render();
+    return true;
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
-    toast("Öffnen fehlgeschlagen: "+e.message,"err");
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return false;}
+    toast("Öffnen fehlgeschlagen: "+e.message,"err"); return false;
   }
+}
+function renderView(){
+  const h=state.header;
+  const metaItems=[
+    ["Datum Protokoll",h.datum],["Maschinentyp",h.maschinentyp],
+    ["Serien- / Masch.-Nr.",h.serienNr],["Kunde",h.kunde],["Standort",h.standort],
+    ["Installations- / IBN-Datum",h.ibnDatum],["Monteur(e) / Techniker",h.monteur]
+  ];
+  let html=`<h2 class="page-title">${esc((h.datum||"")+" · "+(h.kunde||"Ohne Kunde"))}</h2>`;
+  html+=`<div class="vmeta">`+metaItems.map(([l,v])=>`<div class="vrow"><span class="vlabel">${l}</span><span class="vval">${esc(v||"—")}</span></div>`).join("")+`</div>`;
+  html+=`<div class="vsec">Mängel · Defects (${state.defects.length})</div>`;
+  if(!state.defects.length) html+=`<div class="empty">Keine Mängel.</div>`;
+  state.defects.forEach((d,i)=>{
+    const sev=d.schweregrad?("sev-"+d.schweregrad):"";
+    html+=`<div class="vcard ${sev}"><div class="vcard-bar"><b>MANGEL ${String(i+1).padStart(2,"0")}</b>${d.schweregrad?("<span>"+esc(sevLabel[d.schweregrad])+"</span>"):""}</div>`;
+    const rows=[
+      ["Baugruppe / Komponente",d.baugruppe],["Position",d.position],["Kategorie",d.kategorie],
+      ["Verursacht durch",verursacherLabel(d)],["Beschreibung",d.beschreibung],
+      ["Vermutete Ursache",d.ursache],["Sofortmassnahme",d.sofort],
+      ["Empfohlene Massnahme",d.empfohlen],["Status",statusLabel[d.status]]
+    ].filter(([l,v])=>v);
+    html+=rows.map(([l,v])=>`<div class="vrow"><span class="vlabel">${l}</span><span class="vval">${nl(v)}</span></div>`).join("");
+    if(d.photos&&d.photos.length) html+=`<div class="vphotos">`+d.photos.map(p=>`<img src="${photoSrc(p)}">`).join("")+`</div>`;
+    html+=`</div>`;
+  });
+  html+=`<div class="vsec">Abnahme &amp; Unterschriften</div>`;
+  html+=`<div class="vsign"><div><b>${esc(h.satVerantwortlich||"—")}</b><span>Verantwortliche:r Site Acceptance Test</span></div>`+
+        `<div><b>${esc(h.faluMonteur||"—")}</b><span>Installierende:r Monteur:in FALU</span></div></div>`;
+  document.getElementById("viewBody").innerHTML=html;
+}
+function downloadPdf(){
+  buildPrint();
+  const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
+  const prev=document.title; document.title="Maengelprotokoll_"+safe;
+  window.print();
+  setTimeout(()=>{document.title=prev;},800);
 }
 async function deleteReport(id){
   if(!await modalConfirm("Bericht endgültig löschen?",{okLabel:"Löschen",danger:true})) return;
@@ -1202,6 +1280,9 @@ async function deleteReport(id){
 document.getElementById("formHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("reportsHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("usersHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("viewHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("btnViewEdit").addEventListener("click",()=>{if(state.reportId)navigate("#/report/"+state.reportId+"/edit");});
+document.getElementById("btnViewPdf").addEventListener("click",downloadPdf);
 document.getElementById("btnNewReport").addEventListener("click",()=>navigate("#/new"));
 document.getElementById("btnReportsLogout").addEventListener("click",logout);
 document.getElementById("btnUsersLogout").addEventListener("click",logout);
@@ -1215,6 +1296,11 @@ async function callAdmin(action,payload){
   return j;
 }
 function monteurDisplay(p){return p.name||p.email;}
+function nameForEmail(email){
+  if(!email) return "";
+  const p=PROFILES.find(x=>x.email===email);
+  return (p&&p.name)?p.name:email;
+}
 async function loadProfiles(){
   try{const j=await callAdmin("names"); PROFILES=(j.names||[]).filter(p=>p.email);}catch(_){PROFILES=[];}
   PROFILES.sort((a,b)=>monteurDisplay(a).localeCompare(monteurDisplay(b)));
