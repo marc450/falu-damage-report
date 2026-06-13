@@ -27,7 +27,9 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - The PDF is produced by building a hidden `.print-doc` from state and calling
   `window.print()`. Screen UI is hidden in `@media print`; the print doc is
   hidden on screen. Keep this split.
-- Labels are bilingual: German primary, English secondary.
+- Labels are bilingual: German primary, English secondary. EXCEPTION: the
+  authentication screens (`#authGate` login + `#resetGate` password reset) and
+  their inline messages are English-only, per request.
 
 ## Central reporting (Supabase)
 - Backend is the **shared** Supabase project "Whatsapp <> Slack Bridge"
