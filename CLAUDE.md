@@ -96,7 +96,9 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   Bearbeiten + "PDF herunterladen" buttons); `#/report/<id>/edit` = editable form.
   Clicking a row opens the read-only view; `loadReportData(id)` fetches+sets state
   (photos via signed URLs into `signedCache`) for both. `downloadPdf()` is shared
-  by the form and view PDF buttons.
+  by the form and view PDF buttons. The view also has "Link kopieren"
+  (`copyReportLink` → clipboard, deep-links to `#/report/<id>`; opening it prompts
+  login then lands on the report).
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.

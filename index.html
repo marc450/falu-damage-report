@@ -431,6 +431,7 @@
         <img class="applogo" alt="Falu">
       </div>
       <div class="toolbtns">
+        <button class="btn btn--ghost" id="btnViewLink">Link kopieren</button>
         <button class="btn btn--ghost" id="btnViewEdit">Bearbeiten</button>
         <button class="btn btn--primary" id="btnViewPdf">PDF herunterladen</button>
       </div>
@@ -1246,6 +1247,16 @@ function renderView(){
         `<div><b>${esc(h.faluMonteur||"—")}</b><span>Installierende:r Monteur:in FALU</span></div></div>`;
   document.getElementById("viewBody").innerHTML=html;
 }
+async function copyReportLink(){
+  if(!state.reportId){toast("Bericht zuerst speichern.","err");return;}
+  const url=location.origin+location.pathname+"#/report/"+state.reportId;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){ await navigator.clipboard.writeText(url); }
+    else { const ta=document.createElement("textarea"); ta.value=url; ta.style.position="fixed"; ta.style.opacity="0";
+           document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
+    toast("Link kopiert ✓","ok");
+  }catch(e){ toast("Link konnte nicht kopiert werden.","err"); }
+}
 function downloadPdf(){
   buildPrint();
   const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
@@ -1281,6 +1292,7 @@ document.getElementById("formHome").addEventListener("click",()=>navigate("#/rep
 document.getElementById("reportsHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("usersHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("viewHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("btnViewLink").addEventListener("click",copyReportLink);
 document.getElementById("btnViewEdit").addEventListener("click",()=>{if(state.reportId)navigate("#/report/"+state.reportId+"/edit");});
 document.getElementById("btnViewPdf").addEventListener("click",downloadPdf);
 document.getElementById("btnNewReport").addEventListener("click",()=>navigate("#/new"));
