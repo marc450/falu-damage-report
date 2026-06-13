@@ -29,6 +29,9 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   reports small. The file input has NO `capture` attribute, so phones offer
   camera OR existing library. On Speichern, data-URL photos are converted to
   Blobs and uploaded to Supabase Storage; the row stores their paths.
+- Confirmations use the app-native `modalConfirm(message, {okLabel, cancelLabel,
+  danger})` (a Falu-styled `#modal`, returns a Promise<boolean>) — never the
+  browser `confirm()`/`alert()`. `danger:true` makes the OK button Falu-red.
 - The PDF is produced by building a hidden `.print-doc` from state and calling
   `window.print()`. Screen UI is hidden in `@media print`; the print doc is
   hidden on screen. Keep this split.
