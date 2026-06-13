@@ -75,7 +75,10 @@
   .field input,.field select,.field textarea{
     font-family:var(--font-sans);font-size:16px;color:var(--ink);background:var(--bg);
     border:1px solid var(--rule);padding:10px 11px;width:100%;min-width:0}
-  .field input[type="date"]{-webkit-appearance:none;appearance:none;text-align:left}
+  .field input[type="date"]{-webkit-appearance:none;appearance:none;text-align:left;
+    min-height:42px;line-height:1.2}
+  .field input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
+  .field input[type="date"]::-webkit-datetime-edit{text-align:left;padding:0}
   .field textarea{resize:vertical;min-height:60px;line-height:1.45}
   .field input:focus,.field select:focus,.field textarea:focus{
     outline:none;border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
@@ -257,7 +260,7 @@ document.getElementById("logoImg").src=LOGO;
 const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line2:"+41 55 225 51 51 · sales@falu.com"};
 
 const META=[
-  ["datum","Datum","Date","date"],
+  ["datum","Datum Protokoll","Report date","date"],
   ["maschinentyp","Maschinentyp","Machine type","text"],
   ["serienNr","Serien- / Masch.-Nr.","Serial / machine no.","text"],
   ["kunde","Kunde","Customer","text"],
@@ -473,7 +476,7 @@ function buildPrint(){
     `<tr><td class="p-lab">${l}<em>${e}</em></td><td>${esc(v||"")}</td>`+
     (l2!==null?`<td class="p-lab">${l2}<em>${e2}</em></td><td>${esc(v2||"")}</td>`:`<td colspan="2"></td>`)+`</tr>`;
   let meta=`<table class="p-meta">`+
-    metaRow("Datum","Date",h.datum,"Maschinentyp","Machine type",h.maschinentyp)+
+    metaRow("Datum Protokoll","Report date",h.datum,"Maschinentyp","Machine type",h.maschinentyp)+
     metaRow("Serien- / Masch.-Nr.","Serial no.",h.serienNr,"IBN-Datum","Commissioning",h.ibnDatum)+
     metaRow("Kunde","Customer",h.kunde,"Standort","Site",h.standort)+
     `<tr><td class="p-lab">Monteur(e)<em>Technician(s)</em></td><td colspan="3">${esc(h.monteur||"")}</td></tr>`+
