@@ -248,6 +248,8 @@
              align-items:center;font-family:var(--font-mono);font-size:11px;letter-spacing:0.1em}
   .vphotos{display:flex;flex-wrap:wrap;gap:8px;padding:11px 13px}
   .vphotos img{width:120px;height:120px;object-fit:cover;border:1px solid var(--rule)}
+  .vnote{font-size:13px;color:var(--ink-soft);line-height:1.5;margin:22px 0 4px;
+         border-left:3px solid var(--falu-red);padding:8px 0 8px 12px;background:var(--bg-alt)}
   .vsign{display:flex;gap:20px;margin-top:8px}
   @media(max-width:560px){.vsign{flex-direction:column}}
   .vsign>div{flex:1;border:1px solid var(--rule);padding:14px}
@@ -309,6 +311,8 @@
   .p-eyebrow{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.16em;
              color:var(--ink-muted);border-bottom:1px solid var(--navy);padding-bottom:3px;margin:16px 0 8px}
   .p-eyebrow b{color:var(--falu-red)}
+  .p-note{font-size:10px;color:var(--ink-soft);line-height:1.5;margin:14px 0;
+          border-left:3px solid var(--falu-red);padding:7px 0 7px 10px;background:var(--bg-alt)}
   table.p-meta{width:100%;border-collapse:collapse;margin-bottom:4px}
   table.p-meta td{border:1px solid var(--rule);padding:5px 8px;vertical-align:top}
   .p-lab{background:var(--bg-alt);width:23%;font-weight:600;color:var(--navy)}
@@ -359,17 +363,17 @@
   </div>
 
   <div class="wrap">
-    <div class="section-label"><span class="num">01</span><span>Maschinen- &amp; Auftragsdaten · Machine &amp; order</span><span class="rule"></span></div>
+    <div class="section-label"><span class="num">01</span><span>Machine &amp; order details</span><span class="rule"></span></div>
     <div class="grid2" id="metaGrid"></div>
 
-    <div class="section-label"><span class="num">02</span><span>Mängel · Defects</span><span class="rule"></span></div>
+    <div class="section-label"><span class="num">02</span><span>Defects</span><span class="rule"></span></div>
     <div class="chips" id="chips"></div>
-    <p class="hint">Pro Mangel eine Karte. Fotos werden direkt mit der Kamera aufgenommen und automatisch verkleinert angehängt. <em>One card per defect. Photos are taken with the camera and attached automatically.</em></p>
+    <p class="hint">One card per defect. Photos can be taken with the camera or chosen from the device and are downscaled automatically.</p>
 
     <div id="defects"></div>
-    <button class="addcard" id="btnAdd">+&nbsp;&nbsp;Mangel hinzufügen · Add defect</button>
+    <button class="addcard" id="btnAdd">+&nbsp;&nbsp;Add defect</button>
 
-    <div class="section-label"><span class="num">03</span><span>Unterschriften · Signatures</span><span class="rule"></span></div>
+    <div class="section-label"><span class="num">03</span><span>Signatures</span><span class="rule"></span></div>
     <div class="grid2" id="signGrid"></div>
 
     <div class="appfoot">
@@ -501,54 +505,55 @@ const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line
 
 const MACHINES=["CB1","CT-200","CT-2000","CT-3000","SV-2X","BV-2M","ABS-2","RB-30A","SQB-2A","BL-12","BL-16","WR-600","WR-2100-S","VP-2","WI"];
 const META=[
-  ["datum","Datum Protokoll","Report date","date"],
-  ["maschinentyp","Maschinentyp","Machine type","select"],
-  ["serienNr","Serien- / Masch.-Nr.","Serial / machine no.","text"],
-  ["kunde","Kunde","Customer","text"],
-  ["standort","Standort","Site","text"],
-  ["ibnDatum","Installations- / IBN-Datum","Commissioning date","date"],
-  ["monteur","Monteur(e) / Techniker","Technician(s)","userselect"]
+  ["datum","Report date","","date"],
+  ["maschinentyp","Machine type","","select"],
+  ["serienNr","Serial / machine no.","","text"],
+  ["kunde","Customer","","text"],
+  ["standort","Site","","text"],
+  ["ibnDatum","Commissioning date","","date"],
+  ["monteur","Technician(s)","","userselect"]
 ];
 const SIGN=[
-  ["satVerantwortlich","Verantwortliche:r Kunde","Responsible person (customer)","text"],
-  ["faluMonteur","Installierende:r Monteur:in FALU","Installing mechanic FALU","text"]
+  ["satVerantwortlich","Responsible person (customer)","","text"],
+  ["faluMonteur","Installing mechanic FALU","","text"]
 ];
 const KATEGORIE=[
-  ["Mech. Beschädigung","Mechanical damage"],
-  ["Modifikation / Manipulation","Modification / tampering"],
-  ["Elektrik / Sensorik","Electrical / sensor"],
-  ["Fehlteil","Missing part"],
-  ["Verschleiss","Wear"],
-  ["Sonstiges","Other"]
+  ["Mechanical damage","Mechanical damage"],
+  ["Modification / tampering","Modification / tampering"],
+  ["Electrical / sensor","Electrical / sensor"],
+  ["Missing part","Missing part"],
+  ["Wear","Wear"],
+  ["Other","Other"]
 ];
 const VERURSACHER=[
-  ["kunde","Kunde","Customer"],
-  ["falu","FALU","FALU"],
-  ["transport","Transportunternehmen","Transport company"],
-  ["andere","Andere","Other"]
+  ["kunde","Customer"],
+  ["falu","FALU"],
+  ["transport","Transport company"],
+  ["andere","Other"]
 ];
-const STATUS=[["offen","Offen · Open"],["arbeit","In Arbeit · In progress"],["erledigt","Erledigt · Done"]];
-const SEV=[["safety","Sicherheitsrelevant","Safety-critical"],["func","Funktionseinschränkend","Functional"],["minor","Gering / kosmetisch","Minor / cosmetic"]];
+const STATUS=[["offen","Open"],["arbeit","In progress"],["erledigt","Done"]];
+const SEV=[["safety","Safety-critical",""],["func","Functional",""],["minor","Minor / cosmetic",""]];
 
 let uid=1;
 const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[], reportId:null, reportEmail:null };
 const signedCache={}; // storage path -> signed display URL
 let PROFILES=[]; // [{name,email}] — all users, for the technician dropdown
 
+function lbl(a,b){return "<label>"+a+(b?" <em>"+b+"</em>":"")+"</label>";}
 const metaGrid=document.getElementById("metaGrid");
 META.forEach(([key,de,en,type])=>{
   const f=document.createElement("div"); f.className="field";
-  f.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  f.innerHTML=lbl(de,en);
   let inp;
   if(type==="select"){
     inp=document.createElement("select");
-    inp.innerHTML=`<option value="">— wählen / select —</option>`+
+    inp.innerHTML=`<option value="">— select —</option>`+
       MACHINES.map(m=>`<option value="${m}">${m}</option>`).join("");
     if(state.header[key]) inp.value=state.header[key];
     inp.addEventListener("change",()=>{state.header[key]=inp.value});
   } else if(type==="userselect"){
     inp=document.createElement("select");
-    inp.innerHTML=`<option value="">— wählen / select —</option>`; // options filled after login by populateMonteurOptions()
+    inp.innerHTML=`<option value="">— select —</option>`; // options filled after login by populateMonteurOptions()
     if(state.header[key]) inp.value=state.header[key];
     inp.addEventListener("change",()=>{state.header[key]=inp.value});
   } else {
@@ -562,7 +567,7 @@ META.forEach(([key,de,en,type])=>{
 const signGrid=document.getElementById("signGrid");
 SIGN.forEach(([key,de,en,type])=>{
   const f=document.createElement("div"); f.className="field";
-  f.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  f.innerHTML=lbl(de,en);
   const inp=document.createElement("input"); inp.type=type;
   if(state.header[key]) inp.value=state.header[key];
   inp.addEventListener("input",()=>{state.header[key]=inp.value});
@@ -577,7 +582,7 @@ function removeDefect(id){state.defects=state.defects.filter(x=>x.id!==id);rende
 function fieldEl(d,key,de,en,multiline){
   const f=document.createElement("div"); f.className="field";
   const head=document.createElement("div"); head.className="field-head";
-  head.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  head.innerHTML=lbl(de,en);
   const ai=document.createElement("button"); ai.type="button"; ai.className="ai-btn";
   ai.textContent="✨ EN"; ai.title="Mit KI auf Englisch umschreiben";
   head.appendChild(ai); f.appendChild(head);
@@ -603,9 +608,9 @@ function fieldEl(d,key,de,en,multiline){
 }
 function selectField(d,key,de,en,opts,withFirst){
   const f=document.createElement("div"); f.className="field";
-  f.innerHTML=`<label>${de} <em>${en}</em></label>`;
+  f.innerHTML=lbl(de,en);
   const sel=document.createElement("select");
-  let html=withFirst?`<option value="">— wählen / select —</option>`:"";
+  let html=withFirst?`<option value="">— select —</option>`:"";
   html+=opts.map(o=>{const v=o[0],t=o.length>2?(o[1]+" · "+o[2]):o[1];
     return `<option value="${v}"${d[key]===v?" selected":""}>${t}</option>`;}).join("");
   sel.innerHTML=html; sel.addEventListener("change",()=>{d[key]=sel.value; if(key==="verursacher") render();});
@@ -634,29 +639,29 @@ function renderDefect(d,index){
   const card=document.createElement("div");
   card.className="defect"+(d.schweregrad?" sev-"+d.schweregrad:"");
   const head=document.createElement("div"); head.className="defect-head";
-  head.innerHTML=`<span class="defect-no">Mangel <b>${String(index+1).padStart(2,"0")}</b></span>`;
-  const del=document.createElement("button"); del.className="del"; del.textContent="Löschen";
+  head.innerHTML=`<span class="defect-no">Defect <b>${String(index+1).padStart(2,"0")}</b></span>`;
+  const del=document.createElement("button"); del.className="del"; del.textContent="Delete";
   del.addEventListener("click",()=>removeDefect(d.id)); head.appendChild(del); card.appendChild(head);
 
   const body=document.createElement("div"); body.className="body";
 
   const pair1=document.createElement("div"); pair1.className="pair";
-  pair1.appendChild(fieldEl(d,"baugruppe","Baugruppe / Komponente","Assembly / component"));
-  pair1.appendChild(fieldEl(d,"position","Position an Maschine","Location on machine"));
+  pair1.appendChild(fieldEl(d,"baugruppe","Assembly / component",""));
+  pair1.appendChild(fieldEl(d,"position","Location on machine",""));
   body.appendChild(pair1);
 
   const pair2=document.createElement("div"); pair2.className="pair";
-  pair2.appendChild(selectField(d,"kategorie","Kategorie","Category",KATEGORIE,true));
-  pair2.appendChild(selectField(d,"verursacher","Verursacht durch","Caused by",VERURSACHER,true));
+  pair2.appendChild(selectField(d,"kategorie","Category","",KATEGORIE,true));
+  pair2.appendChild(selectField(d,"verursacher","Caused by","",VERURSACHER,true));
   body.appendChild(pair2);
 
   if(d.verursacher==="andere"){
-    body.appendChild(fieldEl(d,"verursacherDetail","Verursacher – bitte angeben","Caused by – specify"));
+    body.appendChild(fieldEl(d,"verursacherDetail","Caused by – specify",""));
   }
 
   // severity
   const sf=document.createElement("div"); sf.className="field";
-  sf.innerHTML=`<label>Schweregrad <em>Severity</em></label>`;
+  sf.innerHTML=`<label>Severity</label>`;
   const seg=document.createElement("div"); seg.className="seg";
   SEV.forEach(([val,de,en])=>{
     const opt=document.createElement("div"); opt.className="opt s-"+val;
@@ -670,15 +675,15 @@ function renderDefect(d,index){
   });
   sf.appendChild(seg); body.appendChild(sf);
 
-  body.appendChild(fieldEl(d,"beschreibung","Beschreibung des Mangels","Defect description",true));
-  body.appendChild(fieldEl(d,"ursache","Vermutete Ursache","Suspected cause",true));
-  body.appendChild(fieldEl(d,"sofort","Sofortmassnahme vor Ort","Immediate action on site",true));
-  body.appendChild(fieldEl(d,"empfohlen","Empfohlene Massnahme","Recommended action",true));
-  body.appendChild(selectField(d,"status","Status","Status",STATUS,false));
+  body.appendChild(fieldEl(d,"beschreibung","Defect description","",true));
+  body.appendChild(fieldEl(d,"ursache","Suspected cause","",true));
+  body.appendChild(fieldEl(d,"sofort","Immediate action on site","",true));
+  body.appendChild(fieldEl(d,"empfohlen","Recommended action","",true));
+  body.appendChild(selectField(d,"status","Status","",STATUS,false));
 
   // photos
   const pf=document.createElement("div"); pf.className="field";
-  pf.innerHTML=`<label>Fotos <em>Photos</em></label>`;
+  pf.innerHTML=`<label>Photos</label>`;
   const row=document.createElement("div"); row.className="photos";
   d.photos.forEach((src,pi)=>{
     const t=document.createElement("div"); t.className="thumb";
@@ -686,7 +691,7 @@ function renderDefect(d,index){
     const x=document.createElement("button"); x.className="x"; x.textContent="×";
     x.addEventListener("click",()=>{d.photos.splice(pi,1);render();scheduleSave();}); t.appendChild(x); row.appendChild(t);
   });
-  const add=document.createElement("label"); add.className="addphoto"; add.innerHTML=`+ Foto`;
+  const add=document.createElement("label"); add.className="addphoto"; add.innerHTML=`+ Photo`;
   const fin=document.createElement("input"); fin.type="file"; fin.accept="image/*";
   fin.multiple=true; // no "capture" → phone lets the user pick camera or library
   fin.addEventListener("change",async ()=>{
@@ -703,14 +708,14 @@ function updateChips(){
   const total=state.defects.length;
   const safety=state.defects.filter(d=>d.schweregrad==="safety").length;
   document.getElementById("chips").innerHTML=
-    `<div class="chip"><b>${String(total).padStart(2,"0")}</b><span>Mängel total</span></div>`+
-    `<div class="chip ${safety>0?"alert":""}"><b>${String(safety).padStart(2,"0")}</b><span>Sicherheitskritisch</span></div>`;
+    `<div class="chip"><b>${String(total).padStart(2,"0")}</b><span>Defects total</span></div>`+
+    `<div class="chip ${safety>0?"alert":""}"><b>${String(safety).padStart(2,"0")}</b><span>Safety-critical</span></div>`;
 }
 function render(){
   defectsEl.innerHTML="";
   if(state.defects.length===0){
     const e=document.createElement("div"); e.className="empty";
-    e.textContent="Noch keine Mängel erfasst. · No defects recorded yet."; defectsEl.appendChild(e);
+    e.textContent="No defects recorded yet."; defectsEl.appendChild(e);
   } else state.defects.forEach((d,i)=>defectsEl.appendChild(renderDefect(d,i)));
   updateChips();
 }
@@ -729,46 +734,46 @@ function isDataUrl(p){return typeof p==="string"&&p.indexOf("data:")===0;}
 function photoSrc(p){return isDataUrl(p)?p:(signedCache[p]||"");}
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function nl(s){return esc(s).replace(/\n/g,"<br>");}
-const sevLabel={safety:"Sicherheitsrelevant · Safety-critical",func:"Funktionseinschränkend · Functional",minor:"Gering / kosmetisch · Minor"};
-const statusLabel={offen:"Offen",arbeit:"In Arbeit",erledigt:"Erledigt"};
+const sevLabel={safety:"Safety-critical",func:"Functional",minor:"Minor / cosmetic"};
+const statusLabel={offen:"Open",arbeit:"In progress",erledigt:"Done"};
 function verursacherLabel(d){
-  const m={kunde:"Kunde · Customer",falu:"FALU",transport:"Transportunternehmen · Transport company",andere:"Andere · Other"};
+  const m={kunde:"Customer",falu:"FALU",transport:"Transport company",andere:"Other"};
   if(!d.verursacher) return "";
-  if(d.verursacher==="andere") return "Andere · Other"+(d.verursacherDetail?(": "+d.verursacherDetail):"");
+  if(d.verursacher==="andere") return "Other"+(d.verursacherDetail?(": "+d.verursacherDetail):"");
   return m[d.verursacher]||"";
 }
 
 function buildPrint(){
   const h=state.header,d=state.defects;
-  const metaRow=(l,e,v,l2,e2,v2)=>
-    `<tr><td class="p-lab">${l}<em>${e}</em></td><td>${esc(v||"")}</td>`+
-    (l2!==null?`<td class="p-lab">${l2}<em>${e2}</em></td><td>${esc(v2||"")}</td>`:`<td colspan="2"></td>`)+`</tr>`;
+  const metaRow=(l,v,l2,v2)=>
+    `<tr><td class="p-lab">${l}</td><td>${esc(v||"")}</td>`+
+    (l2!==null?`<td class="p-lab">${l2}</td><td>${esc(v2||"")}</td>`:`<td colspan="2"></td>`)+`</tr>`;
   let meta=`<table class="p-meta">`+
-    metaRow("Datum Protokoll","Report date",h.datum,"Maschinentyp","Machine type",h.maschinentyp)+
-    metaRow("Serien- / Masch.-Nr.","Serial no.",h.serienNr,"IBN-Datum","Commissioning",h.ibnDatum)+
-    metaRow("Kunde","Customer",h.kunde,"Standort","Site",h.standort)+
-    `<tr><td class="p-lab">Monteur(e)<em>Technician(s)</em></td><td colspan="3">${esc(h.monteur||"")}</td></tr>`+
+    metaRow("Report date",h.datum,"Machine type",h.maschinentyp)+
+    metaRow("Serial / machine no.",h.serienNr,"Commissioning date",h.ibnDatum)+
+    metaRow("Customer",h.kunde,"Site",h.standort)+
+    `<tr><td class="p-lab">Technician(s)</td><td colspan="3">${esc(h.monteur||"")}</td></tr>`+
     `</table>`;
 
   let cards=d.map((x,i)=>{
     const sev=x.schweregrad?("sev-"+x.schweregrad):"";
-    const badge=x.schweregrad==="safety"?`<span class="p-badge safety">Sicherheitskritisch</span>`
+    const badge=x.schweregrad==="safety"?`<span class="p-badge safety">Safety-critical</span>`
       :(x.schweregrad?`<span class="p-badge">${esc(sevLabel[x.schweregrad])}</span>`:``);
     const photos=x.photos&&x.photos.length?`<div class="p-photos">`+x.photos.map(p=>`<img src="${photoSrc(p)}">`).join("")+`</div>`:``;
-    const trow=(l,e,v)=>v?`<tr><td class="p-lab">${l}<em>${e}</em></td><td>${nl(v)}</td></tr>`:``;
+    const trow=(l,v)=>v?`<tr><td class="p-lab">${l}</td><td>${nl(v)}</td></tr>`:``;
     return `<div class="p-card ${sev}">
-      <div class="p-card-bar"><b>MANGEL ${String(i+1).padStart(2,"0")}</b>${badge}</div>
+      <div class="p-card-bar"><b>DEFECT ${String(i+1).padStart(2,"0")}</b>${badge}</div>
       <table>
-        ${trow("Baugruppe / Komponente","Assembly / component",x.baugruppe)}
-        ${trow("Position","Location on machine",x.position)}
-        ${trow("Kategorie","Category",x.kategorie)}
-        ${trow("Verursacht durch","Caused by",verursacherLabel(x))}
-        ${trow("Schweregrad","Severity",sevLabel[x.schweregrad])}
-        ${trow("Beschreibung","Description",x.beschreibung)}
-        ${trow("Vermutete Ursache","Suspected cause",x.ursache)}
-        ${trow("Sofortmassnahme","Immediate action",x.sofort)}
-        ${trow("Empfohlene Massnahme","Recommended action",x.empfohlen)}
-        ${trow("Status","Status",statusLabel[x.status])}
+        ${trow("Assembly / component",x.baugruppe)}
+        ${trow("Location on machine",x.position)}
+        ${trow("Category",x.kategorie)}
+        ${trow("Caused by",verursacherLabel(x))}
+        ${trow("Severity",sevLabel[x.schweregrad])}
+        ${trow("Description",x.beschreibung)}
+        ${trow("Suspected cause",x.ursache)}
+        ${trow("Immediate action",x.sofort)}
+        ${trow("Recommended action",x.empfohlen)}
+        ${trow("Status",statusLabel[x.status])}
       </table>${photos}
     </div>`;
   }).join("");
@@ -776,34 +781,35 @@ function buildPrint(){
   const total=d.length,safety=d.filter(x=>x.schweregrad==="safety").length;
   document.getElementById("printDoc").innerHTML=`
     <div class="p-top">
-      <div class="p-top-l"><img src="${LOGO}"><div class="m"><strong>Mängelprotokoll</strong><span>Defect Report</span></div></div>
+      <div class="p-top-l"><img src="${LOGO}"><div class="m"><strong>FALU</strong><span>Defect Report</span></div></div>
       <div class="p-addr"><b>${ADDR.name}</b><br>${ADDR.line1}<br>${ADDR.line2}</div>
     </div>
-    <div class="p-title">Mängelprotokoll</div>
-    <div class="p-sub">Inbetriebnahme / Installation · Defect Report</div>
-    <div class="p-eyebrow"><b>01</b> &nbsp; Maschinen- &amp; Auftragsdaten · Machine &amp; order details</div>
+    <div class="p-title">Defect Report</div>
+    <div class="p-sub">Commissioning / Installation</div>
+    <div class="p-eyebrow"><b>01</b> &nbsp; Machine &amp; order details</div>
     ${meta}
-    <div class="p-eyebrow"><b>02</b> &nbsp; Einzelmängel · Individual defects (${total})</div>
-    ${cards||"<p style='color:#8a8a8a'>Keine Mängel erfasst.</p>"}
-    <div class="p-eyebrow"><b>03</b> &nbsp; Zusammenfassung · Summary</div>
+    <div class="p-eyebrow"><b>02</b> &nbsp; Individual defects (${total})</div>
+    ${cards||"<p style='color:#8a8a8a'>No defects recorded.</p>"}
+    <div class="p-eyebrow"><b>03</b> &nbsp; Summary</div>
     <table class="p-meta">
-      <tr><td class="p-lab">Anzahl Mängel total<em>Total defects</em></td><td>${total}</td>
-          <td class="p-lab">Davon sicherheitskritisch<em>Safety-critical</em></td>
+      <tr><td class="p-lab">Total defects</td><td>${total}</td>
+          <td class="p-lab">Safety-critical</td>
           <td style="font-weight:600;color:${safety>0?'rgb(236,28,36)':'#002e5b'}">${safety}</td></tr>
     </table>
-    <div class="p-eyebrow"><b>04</b> &nbsp; Unterschriften · Signatures</div>
+    <div class="p-note">This protocol does not constitute acceptance of the current condition of the machinery.</div>
+    <div class="p-eyebrow"><b>04</b> &nbsp; Signatures</div>
     <div class="p-sign">
       <div class="p-sign-box">
         <div class="p-sign-name">${esc(h.satVerantwortlich||"")}</div>
         <div class="p-sign-line"></div>
-        <div class="p-sign-role">Verantwortliche:r Kunde · Responsible person (customer)</div>
-        <div class="p-sign-meta">Ort, Datum / Unterschrift · Place, date / signature</div>
+        <div class="p-sign-role">Responsible person (customer)</div>
+        <div class="p-sign-meta">Place, date / signature</div>
       </div>
       <div class="p-sign-box">
         <div class="p-sign-name">${esc(h.faluMonteur||"")}</div>
         <div class="p-sign-line"></div>
-        <div class="p-sign-role">Installierende:r Monteur:in FALU · Installing mechanic FALU</div>
-        <div class="p-sign-meta">Ort, Datum / Unterschrift · Place, date / signature</div>
+        <div class="p-sign-role">Installing mechanic FALU</div>
+        <div class="p-sign-meta">Place, date / signature</div>
       </div>
     </div>`;
 }
@@ -1241,30 +1247,31 @@ async function loadReportData(id){
 function renderView(){
   const h=state.header;
   const metaItems=[
-    ["Datum Protokoll",h.datum],["Maschinentyp",h.maschinentyp],
-    ["Serien- / Masch.-Nr.",h.serienNr],["Kunde",h.kunde],["Standort",h.standort],
-    ["Installations- / IBN-Datum",h.ibnDatum],["Monteur(e) / Techniker",h.monteur]
+    ["Report date",h.datum],["Machine type",h.maschinentyp],
+    ["Serial / machine no.",h.serienNr],["Customer",h.kunde],["Site",h.standort],
+    ["Commissioning date",h.ibnDatum],["Technician(s)",h.monteur]
   ];
-  let html=`<h2 class="page-title">${esc((h.datum||"")+" · "+(h.kunde||"Ohne Kunde"))}</h2>`;
+  let html=`<h2 class="page-title">${esc((h.datum||"")+" · "+(h.kunde||"No customer"))}</h2>`;
   html+=`<div class="vmeta">`+metaItems.map(([l,v])=>`<div class="vrow"><span class="vlabel">${l}</span><span class="vval">${esc(v||"—")}</span></div>`).join("")+`</div>`;
-  html+=`<div class="vsec">Mängel · Defects (${state.defects.length})</div>`;
-  if(!state.defects.length) html+=`<div class="empty">Keine Mängel.</div>`;
+  html+=`<div class="vsec">Defects (${state.defects.length})</div>`;
+  if(!state.defects.length) html+=`<div class="empty">No defects.</div>`;
   state.defects.forEach((d,i)=>{
     const sev=d.schweregrad?("sev-"+d.schweregrad):"";
-    html+=`<div class="vcard ${sev}"><div class="vcard-bar"><b>MANGEL ${String(i+1).padStart(2,"0")}</b>${d.schweregrad?("<span>"+esc(sevLabel[d.schweregrad])+"</span>"):""}</div>`;
+    html+=`<div class="vcard ${sev}"><div class="vcard-bar"><b>DEFECT ${String(i+1).padStart(2,"0")}</b>${d.schweregrad?("<span>"+esc(sevLabel[d.schweregrad])+"</span>"):""}</div>`;
     const rows=[
-      ["Baugruppe / Komponente",d.baugruppe],["Position",d.position],["Kategorie",d.kategorie],
-      ["Verursacht durch",verursacherLabel(d)],["Beschreibung",d.beschreibung],
-      ["Vermutete Ursache",d.ursache],["Sofortmassnahme",d.sofort],
-      ["Empfohlene Massnahme",d.empfohlen],["Status",statusLabel[d.status]]
+      ["Assembly / component",d.baugruppe],["Location on machine",d.position],["Category",d.kategorie],
+      ["Caused by",verursacherLabel(d)],["Description",d.beschreibung],
+      ["Suspected cause",d.ursache],["Immediate action",d.sofort],
+      ["Recommended action",d.empfohlen],["Status",statusLabel[d.status]]
     ].filter(([l,v])=>v);
     html+=rows.map(([l,v])=>`<div class="vrow"><span class="vlabel">${l}</span><span class="vval">${nl(v)}</span></div>`).join("");
     if(d.photos&&d.photos.length) html+=`<div class="vphotos">`+d.photos.map(p=>`<img src="${photoSrc(p)}">`).join("")+`</div>`;
     html+=`</div>`;
   });
-  html+=`<div class="vsec">Unterschriften</div>`;
-  html+=`<div class="vsign"><div><b>${esc(h.satVerantwortlich||"—")}</b><span>Verantwortliche:r Kunde</span></div>`+
-        `<div><b>${esc(h.faluMonteur||"—")}</b><span>Installierende:r Monteur:in FALU</span></div></div>`;
+  html+=`<div class="vnote">This protocol does not constitute acceptance of the current condition of the machinery.</div>`;
+  html+=`<div class="vsec">Signatures</div>`;
+  html+=`<div class="vsign"><div><b>${esc(h.satVerantwortlich||"—")}</b><span>Responsible person (customer)</span></div>`+
+        `<div><b>${esc(h.faluMonteur||"—")}</b><span>Installing mechanic FALU</span></div></div>`;
   document.getElementById("viewBody").innerHTML=html;
 }
 async function copyReportLink(){
@@ -1392,7 +1399,7 @@ function populateMonteurOptions(){
   const sel=[...metaGrid.querySelectorAll("select")].find(s=>s._key==="monteur");
   if(!sel) return;
   const cur=state.header.monteur||"";
-  sel.innerHTML=`<option value="">— wählen / select —</option>`+
+  sel.innerHTML=`<option value="">— select —</option>`+
     PROFILES.map(p=>{const v=monteurDisplay(p);return `<option value="${esc(v)}">${esc(v)}</option>`;}).join("");
   if(cur&&!PROFILES.some(p=>monteurDisplay(p)===cur)){
     const o=document.createElement("option"); o.value=cur; o.textContent=cur; sel.appendChild(o);

@@ -58,12 +58,15 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   suffices); signature blocks have blank space above the line for a handwritten
   signature. Output is rasterized (image-based) — keep `html2canvas.scale` ~1.6 to
   balance crispness against file size.
-- Language: the **app UI/chrome is German-only** (navigation, reports overview,
-  user admin, toasts, dialogs). **Customer-facing content stays bilingual**
-  (German primary, English secondary): the report-creation form fields/section
-  labels and the printed PDF — because the customer/SAT sees that output.
-  The authentication screens (`#authGate` login + `#resetGate` reset) are German
-  too (logo-only header, no heading on login).
+- Language: the **app UI/chrome is German** (top nav buttons, reports overview,
+  user admin, toasts, dialogs, login/reset, autosave status, "PDF erstellen").
+  The **protocol/report itself is English-only** (per request): the report-form
+  field/section labels, dropdown options (KATEGORIE/VERURSACHER/STATUS/SEV are
+  English values now), the read-only view (`renderView`), and the printed PDF
+  (`buildPrint`). Use the `lbl(de,en)` helper for field labels — pass English in
+  the first slot and `""` in the second (no bilingual `· · ·` secondary anymore).
+  The report (PDF + view) shows a disclaimer before the signatures: "This protocol
+  does not constitute acceptance of the current condition of the machinery."
 - Navigation is hash-routed (`router()` on `hashchange`): `#/reports` (overview,
   default landing), `#/new` (blank form), `#/report/<id>` (load+edit a report),
   `#/users` (admin). `navigate(h)` sets the hash (or calls `router()` if
