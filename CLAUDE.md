@@ -39,16 +39,28 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Auth: Supabase email/password. A full-screen `.auth` gate blocks the app until
   login. Calls hit `/auth/v1/token` directly via `fetch` (no SDK). Access tokens
   are refreshed via `refresh_token` on a 401 (`authFetch` retries once).
-- Submit (`sendReport`): for each defect, data-URL photos → Blob → uploaded to
-  `falu-report-photos/{userId}/{reportId}/{defIdx}-{photoIdx}.jpg`, then one row
-  is inserted into `falu_reports` (broken-out header columns + `data` JSONB that
-  holds the full defect list with photo *paths*, not base64). `created_by`
-  defaults to `auth.uid()` from the JWT. Empty dates are sent as `null`.
-- RLS: authenticated users may INSERT/SELECT only their own rows; storage
-  policies restrict each user to their own `{userId}/...` folder. Admin reads all
-  reports via the dashboard (service role bypasses RLS).
+- Submit (`sendReport`) is an upsert: `state.reportId` null → INSERT (new uuid,
+  sets `created_by_email`), non-null → PATCH `?id=eq.{id}` (sets `updated_at`,
+  preserves owner). For each defect, data-URL photos → Blob → uploaded to
+  `falu-report-photos/{userId}/{reportId}/...jpg`; already-uploaded paths are
+  kept as-is (no re-upload). The row stores broken-out header columns + `data`
+  JSONB holding the full defect list with photo *paths*, not base64. Empty dates
+  are sent as `null`. The Senden button relabels to "Aktualisieren" when editing.
+- Reports overview (`#reportsView`): lists rows (own, or all for admin) with
+  Öffnen (loads back into the form — existing photos shown via signed URLs,
+  resolved into `signedCache`) and Löschen (deletes row + best-effort storage
+  cleanup). "Neu" starts a blank report.
+- Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
+  RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
+  INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.
+- Admin user management (`#usersView`, button hidden for non-admins) calls the
+  **`falu-admin` Edge Function** (`supabase/functions/falu-admin/index.ts`),
+  which re-checks the caller is admin then uses the service-role key (server-side
+  only — never in the client) to list/create/delete users. Actions: list, create
+  (`email_confirm:true`, sets role), delete (cannot self-delete).
 - Failures surface as a toast telling the mechanic to use Speichern and retry —
-  never lose data on a network error.
+  never lose data on a network error. A 401 triggers one token refresh; if that
+  fails the auth gate reappears.
 
 ## Brand (from the Falu design system — keep consistent)
 - **Falu red** `rgb(236,28,36)` (dark `rgb(200,20,28)`) — key highlights ONLY

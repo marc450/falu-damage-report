@@ -190,13 +190,57 @@
   .toast.show{display:block}
   .toast.err{background:var(--falu-red)}
 
+  /* ---------- panels (reports overview / users) ---------- */
+  .panel{position:fixed;inset:0;z-index:80;background:var(--bg-alt);overflow:auto;display:none}
+  .panel.show{display:block}
+  .panel-inner{max-width:820px;margin:0 auto;background:var(--bg);min-height:100vh;
+               border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+  .panel-bar{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--rule);
+             display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;z-index:5}
+  .panel-bar h2{margin:0;font-size:16px;color:var(--navy);font-weight:600}
+  .panel-body{padding:20px 24px 60px}
+  @media(max-width:560px){.panel-bar{padding:12px 16px}.panel-body{padding:16px}}
+
+  .rep{display:flex;align-items:center;justify-content:space-between;gap:12px;
+       border:1px solid var(--rule);border-left:4px solid var(--navy);padding:12px 14px;margin-bottom:10px}
+  .rep.has-safety{border-left-color:var(--falu-red)}
+  .rep-main{min-width:0}
+  .rep-main b{color:var(--navy);font-size:14px}
+  .rep-meta{font-family:var(--font-mono);font-size:10px;letter-spacing:0.04em;color:var(--ink-muted);
+            text-transform:uppercase;margin-top:4px;line-height:1.6}
+  .rep-actions{display:flex;gap:6px;flex-shrink:0}
+  .rep-actions button{font-size:12px;padding:8px 11px;border:1px solid var(--rule);background:#fff;
+                      cursor:pointer;font-family:var(--font-sans);font-weight:500;color:var(--ink-soft)}
+  .rep-actions .open:hover{border-color:var(--navy);color:var(--navy)}
+  .rep-actions .del:hover{border-color:var(--falu-red);color:var(--falu-red)}
+
+  .userform{border:1px solid var(--rule);padding:16px;margin-bottom:24px;display:grid;gap:10px;max-width:440px}
+  .userform label{font-size:12px;font-weight:600;color:var(--navy)}
+  .userform input{font-size:16px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans);min-width:0;width:100%}
+  .userform .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft)}
+  .userform .chk input{width:auto}
+  .userform button{background:var(--falu-red);color:#fff;border:none;padding:12px;font-weight:600;
+                   cursor:pointer;font-family:var(--font-sans)}
+  .userform button:hover{background:var(--falu-red-dark)}
+  .userform button:disabled{opacity:.6;cursor:default}
+  .urow{display:flex;justify-content:space-between;align-items:center;gap:12px;
+        border:1px solid var(--rule);padding:11px 13px;margin-bottom:8px}
+  .urow .em{font-size:13px;color:var(--ink);min-width:0;word-break:break-all}
+  .urow .rl{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;
+            color:var(--ink-muted);margin-top:2px}
+  .urow.admin .rl{color:var(--falu-red)}
+  .urow button{font-size:12px;padding:7px 10px;border:1px solid var(--rule);background:#fff;cursor:pointer;
+               font-family:var(--font-sans);flex-shrink:0}
+  .urow button:hover{border-color:var(--falu-red);color:var(--falu-red)}
+  .urow button:disabled{opacity:.4;cursor:default}
+
   /* ---------- print / PDF ---------- */
   .print-doc{display:none}
   @media print{
     @page{size:A4;margin:13mm 12mm}
     body{background:#fff}
     .app{display:none !important}
-    .auth,.toast{display:none !important}
+    .auth,.toast,.panel{display:none !important}
     .print-doc{display:block !important;color:#222;font-size:10.5px;font-family:var(--font-sans)}
     .p-top{display:flex;align-items:flex-start;justify-content:space-between;
            border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:4px}
@@ -258,6 +302,9 @@
       <div class="lockup-meta"><strong>Mängelprotokoll</strong><span>Defect Report</span></div>
     </div>
     <div class="toolbtns">
+      <button class="btn btn--ghost" id="btnReports">Berichte</button>
+      <button class="btn btn--ghost" id="btnNew">Neu</button>
+      <button class="btn btn--ghost" id="btnUsers" style="display:none">Benutzer</button>
       <button class="btn btn--ghost" id="btnLoad">Laden</button>
       <button class="btn btn--ghost" id="btnSave">Speichern</button>
       <button class="btn btn--primary" id="btnPdf">PDF erstellen</button>
@@ -285,6 +332,35 @@
       <strong>FALU AG</strong> · Joweidzentrum 5, 8630 Rüti, Switzerland<br>
       +41 55 225 51 51 · sales@falu.com · Rüti<br>
       <span id="authStatus"></span>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="reportsView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <h2 id="reportsTitle">Berichte · Reports</h2>
+      <button class="btn btn--ghost" id="btnReportsClose">Schliessen</button>
+    </div>
+    <div class="panel-body" id="reportsList"></div>
+  </div>
+</div>
+
+<div class="panel" id="usersView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <h2>Benutzer · Users</h2>
+      <button class="btn btn--ghost" id="btnUsersClose">Schliessen</button>
+    </div>
+    <div class="panel-body">
+      <div class="userform">
+        <label for="newEmail">Neue:r Benutzer:in · New user</label>
+        <input type="email" id="newEmail" placeholder="E-Mail" autocomplete="off" autocapitalize="none">
+        <input type="password" id="newPass" placeholder="Passwort · Password" autocomplete="new-password">
+        <label class="chk"><input type="checkbox" id="newAdmin"> Administrator:in (Vollzugriff · full access)</label>
+        <button id="btnCreateUser">Anlegen · Create</button>
+      </div>
+      <div id="usersList"></div>
     </div>
   </div>
 </div>
@@ -353,7 +429,8 @@ const STATUS=[["offen","Offen · Open"],["arbeit","In Arbeit · In progress"],["
 const SEV=[["safety","Sicherheitsrelevant","Safety-critical"],["func","Funktionseinschränkend","Functional"],["minor","Gering / kosmetisch","Minor / cosmetic"]];
 
 let uid=1;
-const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[] };
+const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[], reportId:null, reportEmail:null };
+const signedCache={}; // storage path -> signed display URL
 
 const metaGrid=document.getElementById("metaGrid");
 META.forEach(([key,de,en,type])=>{
@@ -468,7 +545,7 @@ function renderDefect(d,index){
   const row=document.createElement("div"); row.className="photos";
   d.photos.forEach((src,pi)=>{
     const t=document.createElement("div"); t.className="thumb";
-    const im=document.createElement("img"); im.src=src; t.appendChild(im);
+    const im=document.createElement("img"); im.src=photoSrc(src); t.appendChild(im);
     const x=document.createElement("button"); x.className="x"; x.textContent="×";
     x.addEventListener("click",()=>{d.photos.splice(pi,1);render();}); t.appendChild(x); row.appendChild(t);
   });
@@ -499,6 +576,15 @@ function render(){
     e.textContent="Noch keine Mängel erfasst. · No defects recorded yet."; defectsEl.appendChild(e);
   } else state.defects.forEach((d,i)=>defectsEl.appendChild(renderDefect(d,i)));
   updateChips();
+  updateSendLabel();
+}
+function syncHeaderInputs(){
+  metaGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
+  signGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
+}
+function updateSendLabel(){
+  const b=document.getElementById("btnSend");
+  if(b) b.textContent=state.reportId?"Aktualisieren":"Senden";
 }
 
 document.getElementById("btnSave").addEventListener("click",()=>{
@@ -514,14 +600,16 @@ document.getElementById("fileLoad").addEventListener("change",function(){
   r.onload=()=>{try{
     const obj=JSON.parse(r.result);
     state.header=obj.header||{}; state.defects=obj.defects||[];
+    state.reportId=obj.reportId||null; state.reportEmail=obj.reportEmail||null;
     uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
-    metaGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
-    signGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
+    syncHeaderInputs();
     render();
   }catch(e){alert("Datei konnte nicht gelesen werden. · Could not read file.");}};
   r.readAsText(file); this.value="";
 });
 
+function isDataUrl(p){return typeof p==="string"&&p.indexOf("data:")===0;}
+function photoSrc(p){return isDataUrl(p)?p:(signedCache[p]||"");}
 function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function nl(s){return esc(s).replace(/\n/g,"<br>");}
 const sevLabel={safety:"Sicherheitsrelevant · Safety-critical",func:"Funktionseinschränkend · Functional",minor:"Gering / kosmetisch · Minor"};
@@ -549,7 +637,7 @@ function buildPrint(){
     const sev=x.schweregrad?("sev-"+x.schweregrad):"";
     const badge=x.schweregrad==="safety"?`<span class="p-badge safety">Sicherheitskritisch</span>`
       :(x.schweregrad?`<span class="p-badge">${esc(sevLabel[x.schweregrad])}</span>`:``);
-    const photos=x.photos&&x.photos.length?`<div class="p-photos">`+x.photos.map(p=>`<img src="${p}">`).join("")+`</div>`:``;
+    const photos=x.photos&&x.photos.length?`<div class="p-photos">`+x.photos.map(p=>`<img src="${photoSrc(p)}">`).join("")+`</div>`:``;
     const trow=(l,e,v)=>v?`<tr><td class="p-lab">${l}<em>${e}</em></td><td>${nl(v)}</td></tr>`:``;
     return `<div class="p-card ${sev}">
       <div class="p-card-bar"><b>MANGEL ${String(i+1).padStart(2,"0")}</b>${badge}</div>
@@ -629,9 +717,11 @@ async function doLogin(){
       body:JSON.stringify({email,password:pass})});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error_description||j.msg||j.error||"Anmeldung fehlgeschlagen.");
-    session={token:j.access_token,refresh:j.refresh_token,userId:j.user.id,email:j.user.email};
+    const isAdmin=!!(j.user&&j.user.app_metadata&&j.user.app_metadata.role==="admin");
+    session={token:j.access_token,refresh:j.refresh_token,userId:j.user.id,email:j.user.email,isAdmin};
     document.getElementById("authPass").value="";
     authGate.style.display="none";
+    document.getElementById("btnUsers").style.display=isAdmin?"":"none";
     updateAuthStatus();
   }catch(e){authErr.textContent=e.message;}
   finally{authBtn.disabled=false;}
@@ -639,7 +729,9 @@ async function doLogin(){
 authBtn.addEventListener("click",doLogin);
 document.getElementById("authPass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
 
-function logout(){session=null;updateAuthStatus();authGate.style.display="flex";}
+function logout(){session=null;document.getElementById("btnUsers").style.display="none";
+  reportsView.classList.remove("show");usersView.classList.remove("show");
+  updateAuthStatus();authGate.style.display="flex";}
 function updateAuthStatus(){
   const el=document.getElementById("authStatus");
   if(session){
@@ -672,32 +764,47 @@ function dataURLtoBlob(dataurl){
 }
 function dateOrNull(v){return v?v:null;}
 
+async function signPath(path){
+  if(signedCache[path]) return signedCache[path];
+  const r=await authFetch(SUPABASE_URL+"/storage/v1/object/sign/"+SB_BUCKET+"/"+path,
+    {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({expiresIn:3600})});
+  const j=await r.json();
+  if(!r.ok) throw new Error(j.message||"Signierung fehlgeschlagen");
+  const url=SUPABASE_URL+"/storage/v1"+j.signedURL;
+  signedCache[path]=url; return url;
+}
+async function resolveSignedUrls(){
+  const paths=[];
+  state.defects.forEach(d=>(d.photos||[]).forEach(p=>{if(!isDataUrl(p)&&!signedCache[p])paths.push(p);}));
+  for(const p of paths){try{await signPath(p);}catch(e){/* leave blank thumb */}}
+}
+
 async function sendReport(){
   if(!session){authGate.style.display="flex";return;}
   const btn=document.getElementById("btnSend");
   btn.disabled=true;
-  toast("Wird gesendet… · Sending…");
+  const updating=!!state.reportId;
+  toast(updating?"Wird aktualisiert… · Updating…":"Wird gesendet… · Sending…");
   try{
-    const reportId=(crypto.randomUUID?crypto.randomUUID():String(uid)+"-"+state.defects.length);
+    const reportId=state.reportId||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+uid);
     const h=state.header;
     const defectsOut=[];
     for(let di=0;di<state.defects.length;di++){
-      const d=state.defects[di]; const paths=[];
+      const d=state.defects[di]; const photos=[];
       for(let pi=0;pi<d.photos.length;pi++){
         const src=d.photos[pi];
-        if(typeof src==="string"&&src.indexOf("data:")===0){
+        if(isDataUrl(src)){
           const blob=dataURLtoBlob(src);
-          const path=session.userId+"/"+reportId+"/"+di+"-"+pi+".jpg";
+          const path=session.userId+"/"+reportId+"/"+di+"-"+pi+"-"+Date.now()+".jpg";
           const up=await authFetch(SUPABASE_URL+"/storage/v1/object/"+SB_BUCKET+"/"+path,
             {method:"POST",headers:{"Content-Type":blob.type,"x-upsert":"true"},body:blob});
           if(!up.ok) throw new Error("Foto-Upload fehlgeschlagen ("+up.status+")");
-          paths.push(path);
-        }
+          photos.push(path);
+        } else { photos.push(src); } // already-uploaded path, keep as-is
       }
-      defectsOut.push(Object.assign({},d,{photos:paths}));
+      defectsOut.push(Object.assign({},d,{photos:photos}));
     }
-    const row={
-      id:reportId,
+    const body={
       datum:dateOrNull(h.datum), maschinentyp:h.maschinentyp||null, serien_nr:h.serienNr||null,
       kunde:h.kunde||null, standort:h.standort||null, ibn_datum:dateOrNull(h.ibnDatum),
       monteur:h.monteur||null, sat_verantwortlich:h.satVerantwortlich||null, falu_monteur:h.faluMonteur||null,
@@ -705,10 +812,22 @@ async function sendReport(){
       safety_count:state.defects.filter(x=>x.schweregrad==="safety").length,
       data:{header:h,defects:defectsOut,bucket:SB_BUCKET}
     };
-    const ins=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE,
-      {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(row)});
-    if(!ins.ok){const t=await ins.text(); throw new Error("Speichern fehlgeschlagen ("+ins.status+"): "+t.slice(0,160));}
-    toast("An Zentrale gesendet ✓ · Submitted to central","ok");
+    let res;
+    if(updating){
+      body.updated_at=new Date().toISOString();
+      res=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(reportId),
+        {method:"PATCH",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
+    } else {
+      body.id=reportId; body.created_by_email=session.email;
+      res=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE,
+        {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(body)});
+    }
+    if(!res.ok){const t=await res.text(); throw new Error("Speichern fehlgeschlagen ("+res.status+"): "+t.slice(0,160));}
+    // reflect persisted state locally so further edits update the same row
+    state.reportId=reportId;
+    state.defects=defectsOut.map((d,i)=>Object.assign({},state.defects[i],{photos:d.photos}));
+    updateSendLabel();
+    toast(updating?"Aktualisiert ✓ · Updated":"An Zentrale gesendet ✓ · Submitted to central","ok");
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex"; toast("Sitzung abgelaufen — bitte neu anmelden. · Session expired, please sign in again.","err");}
     else toast("Fehler: "+e.message+" — bitte „Speichern\" nutzen und später erneut senden.","err");
@@ -717,6 +836,174 @@ async function sendReport(){
   }
 }
 document.getElementById("btnSend").addEventListener("click",sendReport);
+
+/* ---------- new / reports overview / CRUD ---------- */
+const reportsView=document.getElementById("reportsView");
+const usersView=document.getElementById("usersView");
+
+function newReport(){
+  if((state.defects.length>1)||state.reportId||state.header.kunde||state.header.serienNr){
+    if(!confirm("Neues Protokoll? Nicht gesendete Änderungen gehen verloren. · New report? Unsent changes are lost.")) return;
+  }
+  state.header={datum:new Date().toISOString().slice(0,10)};
+  state.defects=[]; state.reportId=null; state.reportEmail=null;
+  uid=1; syncHeaderInputs(); addDefect();
+}
+document.getElementById("btnNew").addEventListener("click",newReport);
+
+async function openReports(){
+  if(!session){authGate.style.display="flex";return;}
+  reportsView.classList.add("show");
+  document.getElementById("reportsTitle").textContent=session.isAdmin?"Alle Berichte · All reports":"Meine Berichte · My reports";
+  const listEl=document.getElementById("reportsList");
+  listEl.innerHTML="<p class='hint'>Laden… · Loading…</p>";
+  try{
+    const sel="id,created_at,updated_at,datum,kunde,serien_nr,maschinentyp,defect_count,safety_count,created_by_email";
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?select="+sel+"&order=created_at.desc");
+    const rows=await r.json();
+    if(!r.ok) throw new Error(rows.message||("Fehler "+r.status));
+    renderReportList(rows);
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){reportsView.classList.remove("show");authGate.style.display="flex";return;}
+    listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+function renderReportList(rows){
+  const listEl=document.getElementById("reportsList");
+  if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Berichte. · No reports.</div>";return;}
+  listEl.innerHTML="";
+  rows.forEach(row=>{
+    const el=document.createElement("div");
+    el.className="rep"+((row.safety_count>0)?" has-safety":"");
+    const title=(row.kunde||"—")+(row.serien_nr?(" · "+row.serien_nr):"");
+    const date=row.datum||(row.created_at?row.created_at.slice(0,10):"");
+    let meta=(date||"")+" · "+(row.maschinentyp||"—")+" · "+(row.defect_count||0)+" Mängel";
+    if(row.safety_count>0) meta+=" · "+row.safety_count+" sicherheitskritisch";
+    if(session.isAdmin&&row.created_by_email) meta+=" · "+row.created_by_email;
+    const main=document.createElement("div"); main.className="rep-main";
+    main.innerHTML="<b>"+esc(title)+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
+    const act=document.createElement("div"); act.className="rep-actions";
+    const ob=document.createElement("button"); ob.className="open"; ob.textContent="Öffnen";
+    ob.addEventListener("click",()=>openReport(row.id));
+    const db=document.createElement("button"); db.className="del"; db.textContent="Löschen";
+    db.addEventListener("click",()=>deleteReport(row.id));
+    act.appendChild(ob); act.appendChild(db);
+    el.appendChild(main); el.appendChild(act); listEl.appendChild(el);
+  });
+}
+async function openReport(id){
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id)+"&select=*");
+    const arr=await r.json();
+    if(!r.ok) throw new Error((arr&&arr.message)||("Fehler "+r.status));
+    const row=arr[0]; if(!row) throw new Error("Bericht nicht gefunden.");
+    const data=row.data||{};
+    state.header=data.header||{
+      datum:row.datum,maschinentyp:row.maschinentyp,serienNr:row.serien_nr,kunde:row.kunde,
+      standort:row.standort,ibnDatum:row.ibn_datum,monteur:row.monteur,
+      satVerantwortlich:row.sat_verantwortlich,faluMonteur:row.falu_monteur
+    };
+    state.defects=(data.defects||[]).map(d=>Object.assign({photos:[]},d,{photos:d.photos||[]}));
+    state.reportId=row.id; state.reportEmail=row.created_by_email||null;
+    uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
+    await resolveSignedUrls();
+    syncHeaderInputs(); render();
+    reportsView.classList.remove("show");
+    toast("Bericht geladen · Report loaded","ok");
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    toast("Öffnen fehlgeschlagen: "+e.message,"err");
+  }
+}
+async function deleteReport(id){
+  if(!confirm("Bericht endgültig löschen? · Permanently delete this report?")) return;
+  try{
+    // best-effort: remove the report's photos from storage
+    const r0=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id)+"&select=data");
+    const a0=await r0.json();
+    const paths=[];
+    if(r0.ok&&a0[0]&&a0[0].data&&a0[0].data.defects)
+      a0[0].data.defects.forEach(d=>(d.photos||[]).forEach(p=>{if(!isDataUrl(p))paths.push(p);}));
+    if(paths.length){
+      await authFetch(SUPABASE_URL+"/storage/v1/object/"+SB_BUCKET,
+        {method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({prefixes:paths})});
+    }
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id),
+      {method:"DELETE",headers:{"Prefer":"return=minimal"}});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    if(state.reportId===id){state.reportId=null;state.reportEmail=null;updateSendLabel();}
+    toast("Bericht gelöscht · Deleted","ok");
+    openReports();
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    toast("Löschen fehlgeschlagen: "+e.message,"err");
+  }
+}
+document.getElementById("btnReports").addEventListener("click",openReports);
+document.getElementById("btnReportsClose").addEventListener("click",()=>reportsView.classList.remove("show"));
+
+/* ---------- admin: user management ---------- */
+async function callAdmin(action,payload){
+  const r=await authFetch(SUPABASE_URL+"/functions/v1/falu-admin",
+    {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.assign({action},payload||{}))});
+  let j; try{j=await r.json();}catch(_){j={};}
+  if(!r.ok) throw new Error(j.error||("Fehler "+r.status));
+  return j;
+}
+async function openUsers(){
+  if(!session||!session.isAdmin){toast("Nur für Administrator:innen.","err");return;}
+  usersView.classList.add("show");
+  await loadUsers();
+}
+async function loadUsers(){
+  const listEl=document.getElementById("usersList");
+  listEl.innerHTML="<p class='hint'>Laden… · Loading…</p>";
+  try{
+    const j=await callAdmin("list");
+    const users=j.users||[];
+    listEl.innerHTML="";
+    users.forEach(u=>{
+      const isAdmin=u.role==="admin";
+      const el=document.createElement("div"); el.className="urow"+(isAdmin?" admin":"");
+      const left=document.createElement("div"); left.className="em";
+      left.innerHTML=esc(u.email||"—")+"<div class='rl'>"+(isAdmin?"Administrator:in":"Benutzer:in")+"</div>";
+      const del=document.createElement("button"); del.textContent="Löschen";
+      if(u.id===session.userId){del.disabled=true;del.title="Sich selbst";}
+      else del.addEventListener("click",()=>deleteUser(u.id,u.email));
+      el.appendChild(left); el.appendChild(del); listEl.appendChild(el);
+    });
+    if(!users.length) listEl.innerHTML="<div class='empty'>Keine Benutzer. · No users.</div>";
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){usersView.classList.remove("show");authGate.style.display="flex";return;}
+    listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+async function createUser(){
+  const email=document.getElementById("newEmail").value.trim();
+  const pass=document.getElementById("newPass").value;
+  const makeAdmin=document.getElementById("newAdmin").checked;
+  if(!email||!pass){toast("E-Mail und Passwort erforderlich.","err");return;}
+  const btn=document.getElementById("btnCreateUser"); btn.disabled=true;
+  try{
+    await callAdmin("create",{email,password:pass,makeAdmin});
+    document.getElementById("newEmail").value="";
+    document.getElementById("newPass").value="";
+    document.getElementById("newAdmin").checked=false;
+    toast("Benutzer:in angelegt ✓ · User created","ok");
+    loadUsers();
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){usersView.classList.remove("show");authGate.style.display="flex";}
+    else toast("Anlegen fehlgeschlagen: "+e.message,"err");
+  }finally{btn.disabled=false;}
+}
+async function deleteUser(id,email){
+  if(!confirm("Benutzer:in „"+email+"\" löschen? · Delete this user?")) return;
+  try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht · User deleted","ok"); loadUsers(); }
+  catch(e){ toast("Löschen fehlgeschlagen: "+e.message,"err"); }
+}
+document.getElementById("btnUsers").addEventListener("click",openUsers);
+document.getElementById("btnUsersClose").addEventListener("click",()=>usersView.classList.remove("show"));
+document.getElementById("btnCreateUser").addEventListener("click",createUser);
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());
 addDefect();
