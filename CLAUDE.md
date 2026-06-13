@@ -13,17 +13,19 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Keep everything in `index.html`. No build step, no framework, no CDNs, no
   fonts fetched over the network. The ONLY network calls are to Supabase
   (auth, storage, REST) — see "Central reporting" below.
-- The form must keep working OFFLINE: all editing is in-memory, and JSON file
-  export/import (Speichern/Laden) is the offline persistence path. Supabase
-  submit (Senden) is an additional, online-only action. Never make core form
-  editing depend on the network.
-- No `localStorage`/`sessionStorage`. In-memory state only. The Supabase auth
-  session is also memory-only (mechanic re-logs in per page load) — do not
-  persist tokens to storage without explicitly revisiting this.
+- The app is online/central now (requires login). "Speichern" saves the report
+  to Supabase (upsert). The old local JSON export/import (Laden/Speichern-to-file)
+  and the separate "Senden" button were removed. Report draft state is still
+  in-memory (a reload loses an unsaved draft) — only the auth session persists.
+- `localStorage` is used ONLY to persist the auth session: `falu_session` holds
+  the Supabase refresh token so a reload stays signed in (`saveSession`,
+  `restoreSession`, cleared on logout). Do not store report/patient-like data
+  there. (Storing the refresh token is an accepted XSS tradeoff for staying
+  logged in; revisit if requirements change.)
 - Photos are read with FileReader and downscaled on a canvas (max 1280px long
   edge, JPEG q≈0.72) before being stored as data URLs. Keep this — it keeps
-  reports small. On Senden, data-URL photos are converted to Blobs and uploaded
-  to Supabase Storage; the local JSON export keeps the base64 data URLs.
+  reports small. On Speichern, data-URL photos are converted to Blobs and
+  uploaded to Supabase Storage; the row stores their paths.
 - The PDF is produced by building a hidden `.print-doc` from state and calling
   `window.print()`. Screen UI is hidden in `@media print`; the print doc is
   hidden on screen. Keep this split.
@@ -64,13 +66,16 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   `falu-report-photos/{userId}/{reportId}/...jpg`; already-uploaded paths are
   kept as-is (no re-upload). The row stores broken-out header columns + `data`
   JSONB holding the full defect list with photo *paths*, not base64. Empty dates
-  are sent as `null`. The Senden button relabels to "Aktualisieren" when editing.
-- The reports overview (`#reportsView`) is the **landing view after login**
-  (`establishSession` calls `openReports`). It lists rows (own, or all for admin),
-  each named **"{date} · {Kunde}"**. Clicking a row opens it into the editable
-  form (existing photos shown via signed URLs, resolved into `signedCache`); the
-  per-row Löschen button deletes the row + best-effort storage cleanup. The bar
-  has "+ Neuer Bericht", "Benutzer" (admin only), "Abmelden", "Schliessen".
+  are sent as `null`. The Speichern button (triggers `sendReport`) relabels to
+  "Aktualisieren" when editing.
+- All views share the same header: a logo-only FALU lockup (no wordmark text) on
+  the left that links to `#/reports`, plus context buttons on the right.
+- The reports overview (`#reportsView`) is the landing view after login. It lists
+  rows (own, or all for admin), each named **"{date} · {Kunde}"**. Clicking a row
+  opens it into the editable form (existing photos shown via signed URLs, resolved
+  into `signedCache`); the per-row Löschen button deletes the row + best-effort
+  storage cleanup. The bar has "+ Neues Mängelprotokoll", "Benutzer" (admin only),
+  "Abmelden". No "Schliessen".
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.
@@ -79,9 +84,8 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   which re-checks the caller is admin then uses the service-role key (server-side
   only — never in the client) to list/create/delete users. Actions: list, create
   (`email_confirm:true`, sets role), delete (cannot self-delete).
-- Failures surface as a toast telling the mechanic to use Speichern and retry —
-  never lose data on a network error. A 401 triggers one token refresh; if that
-  fails the auth gate reappears.
+- Failures surface as a toast telling the mechanic to try again later. A 401
+  triggers one token refresh; if that fails the auth gate reappears.
 
 ## Brand (from the Falu design system — keep consistent)
 - **Falu red** `rgb(236,28,36)` (dark `rgb(200,20,28)`) — key highlights ONLY

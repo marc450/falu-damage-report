@@ -309,20 +309,15 @@
   <div class="topbar">
     <div class="lockup lockup--link" id="formHome" title="Zu allen Berichten">
       <img id="logoImg" class="applogo" alt="Falu">
-      <div class="lockup-meta"><strong>Mängelprotokoll</strong><span>Defect Report</span></div>
     </div>
     <div class="toolbtns">
       <button class="btn btn--ghost" id="btnReports">Berichte</button>
       <button class="btn btn--ghost" id="btnNew">Neu</button>
       <button class="btn btn--ghost" id="btnUsers" style="display:none">Benutzer</button>
-      <button class="btn btn--ghost" id="btnLoad">Laden</button>
-      <button class="btn btn--ghost" id="btnSave">Speichern</button>
       <button class="btn btn--primary" id="btnPdf">PDF erstellen</button>
-      <button class="btn btn--navy" id="btnSend">Senden</button>
+      <button class="btn btn--navy" id="btnSave">Speichern</button>
     </div>
   </div>
-
-  <input type="file" id="fileLoad" accept="application/json" style="display:none">
 
   <div class="wrap">
     <div class="section-label"><span class="num">01</span><span>Maschinen- &amp; Auftragsdaten · Machine &amp; order</span><span class="rule"></span></div>
@@ -351,10 +346,9 @@
     <div class="panel-bar">
       <div class="lockup lockup--link" id="reportsHome" title="Zu allen Berichten">
         <img class="applogo" alt="Falu">
-        <div class="lockup-meta"><strong>FALU</strong><span>Mängelprotokoll</span></div>
       </div>
       <div class="toolbtns">
-        <button class="btn btn--primary" id="btnNewReport">+&nbsp;Neuer Bericht</button>
+        <button class="btn btn--primary" id="btnNewReport">+&nbsp;Neues Mängelprotokoll</button>
         <button class="btn btn--ghost" id="btnUsers2" style="display:none">Benutzer</button>
         <button class="btn btn--ghost" id="btnReportsLogout">Abmelden</button>
       </div>
@@ -371,7 +365,6 @@
     <div class="panel-bar">
       <div class="lockup lockup--link" id="usersHome" title="Zu allen Berichten">
         <img class="applogo" alt="Falu">
-        <div class="lockup-meta"><strong>FALU</strong><span>Mängelprotokoll</span></div>
       </div>
       <div class="toolbtns">
         <button class="btn btn--ghost" id="btnUsersLogout">Abmelden</button>
@@ -432,7 +425,10 @@ const SUPABASE_URL="https://xasehavpvasplrhvwyuu.supabase.co";
 const SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhhc2VoYXZwdmFzcGxyaHZ3eXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjMzOTQsImV4cCI6MjA4OTkzOTM5NH0.Yzd3SoYIQ-iIwMv6LpM6wP3qQ6FAlq79nbdekMetwFg";
 const SB_TABLE="falu_reports";
 const SB_BUCKET="falu-report-photos";
+const SESSION_KEY="falu_session"; // persists the refresh token so reload keeps you signed in
 let session=null;
+function saveSession(){try{if(session&&session.refresh)localStorage.setItem(SESSION_KEY,JSON.stringify({refresh:session.refresh}));}catch(_){}}
+function clearSavedSession(){try{localStorage.removeItem(SESSION_KEY);}catch(_){}}
 
 const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line2:"+41 55 225 51 51 · sales@falu.com"};
 
@@ -621,30 +617,9 @@ function syncHeaderInputs(){
   signGrid.querySelectorAll("input").forEach(inp=>{inp.value=state.header[inp._key]||"";});
 }
 function updateSendLabel(){
-  const b=document.getElementById("btnSend");
-  if(b) b.textContent=state.reportId?"Aktualisieren":"Senden";
+  const b=document.getElementById("btnSave");
+  if(b) b.textContent=state.reportId?"Aktualisieren":"Speichern";
 }
-
-document.getElementById("btnSave").addEventListener("click",()=>{
-  const name=((state.header.kunde||"")+"_"+(state.header.serienNr||"protokoll")).replace(/[^\w\-]+/g,"_");
-  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download="Maengelprotokoll_"+name+".json"; a.click();
-  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-});
-document.getElementById("btnLoad").addEventListener("click",()=>document.getElementById("fileLoad").click());
-document.getElementById("fileLoad").addEventListener("change",function(){
-  const file=this.files[0]; if(!file)return; const r=new FileReader();
-  r.onload=()=>{try{
-    const obj=JSON.parse(r.result);
-    state.header=obj.header||{}; state.defects=obj.defects||[];
-    state.reportId=obj.reportId||null; state.reportEmail=obj.reportEmail||null;
-    uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
-    syncHeaderInputs();
-    render();
-  }catch(e){alert("Datei konnte nicht gelesen werden. · Could not read file.");}};
-  r.readAsText(file); this.value="";
-});
 
 function isDataUrl(p){return typeof p==="string"&&p.indexOf("data:")===0;}
 function photoSrc(p){return isDataUrl(p)?p:(signedCache[p]||"");}
@@ -747,6 +722,7 @@ const authErr=document.getElementById("authErr");
 function establishSession(access,refresh,user){
   const isAdmin=!!(user&&user.app_metadata&&user.app_metadata.role==="admin");
   session={token:access,refresh:refresh,userId:user.id,email:user.email,isAdmin};
+  saveSession();
   document.getElementById("authPass").value="";
   authGate.style.display="none";
   document.getElementById("resetGate").style.display="none";
@@ -821,23 +797,39 @@ document.getElementById("resetBtn").addEventListener("click",doReset);
 document.getElementById("resetPass2").addEventListener("keydown",e=>{if(e.key==="Enter")doReset();});
 function handleRecoveryHash(){
   const hash=location.hash?location.hash.slice(1):"";
-  if(!hash) return;
+  if(!hash) return false;
   const p=new URLSearchParams(hash);
   if(p.get("error")||p.get("error_description")){
     authErr.className="err";
     authErr.textContent=decodeURIComponent((p.get("error_description")||p.get("error")||"").replace(/\+/g," "));
     history.replaceState(null,"",location.pathname+location.search);
-    return;
+    return false;
   }
   if(p.get("type")==="recovery"&&p.get("access_token")){
     recoveryTokens={access:p.get("access_token"),refresh:p.get("refresh_token")};
     history.replaceState(null,"",location.pathname+location.search);
     authGate.style.display="none";
     document.getElementById("resetGate").style.display="flex";
+    return true;
   }
+  return false;
+}
+async function restoreSession(){
+  let saved=null; try{saved=JSON.parse(localStorage.getItem(SESSION_KEY)||"null");}catch(_){}
+  if(!saved||!saved.refresh) return false;
+  authGate.style.display="none"; // avoid login flash while refreshing
+  try{
+    const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{
+      method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
+      body:JSON.stringify({refresh_token:saved.refresh})});
+    const j=await r.json();
+    if(!r.ok||!j.access_token) throw 0;
+    establishSession(j.access_token,j.refresh_token,j.user);
+    return true;
+  }catch(_){ clearSavedSession(); authGate.style.display="flex"; return false; }
 }
 
-function logout(){session=null;
+function logout(){session=null; clearSavedSession();
   document.getElementById("btnUsers").style.display="none";
   document.getElementById("btnUsers2").style.display="none";
   reportsView.classList.remove("show");usersView.classList.remove("show");
@@ -856,7 +848,7 @@ async function refreshSession(){
     body:JSON.stringify({refresh_token:session.refresh})});
   const j=await r.json();
   if(!r.ok) throw new Error("SESSION_EXPIRED");
-  session.token=j.access_token; session.refresh=j.refresh_token;
+  session.token=j.access_token; session.refresh=j.refresh_token; saveSession();
 }
 async function authFetch(url,opts){
   opts=opts||{}; opts.headers=Object.assign({"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+session.token},opts.headers||{});
@@ -891,7 +883,7 @@ async function resolveSignedUrls(){
 
 async function sendReport(){
   if(!session){authGate.style.display="flex";return;}
-  const btn=document.getElementById("btnSend");
+  const btn=document.getElementById("btnSave");
   btn.disabled=true;
   const updating=!!state.reportId;
   toast(updating?"Wird aktualisiert…":"Wird gesendet…");
@@ -941,12 +933,12 @@ async function sendReport(){
     toast(updating?"Aktualisiert ✓":"An Zentrale gesendet ✓","ok");
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex"; toast("Sitzung abgelaufen — bitte neu anmelden.","err");}
-    else toast("Fehler: "+e.message+" — bitte „Speichern\" nutzen und später erneut senden.","err");
+    else toast("Fehler: "+e.message+" — bitte später erneut versuchen.","err");
   }finally{
     btn.disabled=false;
   }
 }
-document.getElementById("btnSend").addEventListener("click",sendReport);
+document.getElementById("btnSave").addEventListener("click",sendReport);
 
 /* ---------- routing + views ---------- */
 const reportsView=document.getElementById("reportsView");
@@ -1137,7 +1129,7 @@ document.getElementById("btnCreateUser").addEventListener("click",createUser);
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());
 addDefect();
-handleRecoveryHash();
+if(!handleRecoveryHash()) restoreSession();
 </script>
 </body>
 </html>
