@@ -10,9 +10,10 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 (https://marc450.github.io/falu-damage-report/, repo marc450/falu-damage-report).
 
 ## Hard constraints (do not break)
-- Keep everything in `index.html`. No build step, no framework, no CDNs, no
-  fonts fetched over the network. The ONLY network calls are to Supabase
-  (auth, storage, REST) — see "Central reporting" below.
+- Keep everything in `index.html`. No build step, no framework, no fonts fetched
+  over the network. Network calls: Supabase (auth, storage, REST) — see "Central
+  reporting" — and one lazy-loaded library: `html2pdf.bundle.min.js` from cdnjs,
+  fetched only on first PDF download (see PDF below).
 - The app is online/central now (requires login). It **autosaves** to Supabase:
   any edit marks the report dirty, debounces ~1.2s, then upserts (`scheduleSave`
   → `saveReport`); `flushSave()` runs at the top of `router()` so navigating away
@@ -44,14 +45,19 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Confirmations use the app-native `modalConfirm(message, {okLabel, cancelLabel,
   danger})` (a Falu-styled `#modal`, returns a Promise<boolean>) — never the
   browser `confirm()`/`alert()`. `danger:true` makes the OK button Falu-red.
-- The PDF is produced by building a hidden `.print-doc` from state and calling
-  `window.print()` (sets `document.title` first so "Save as PDF" suggests a good
-  filename — a true no-dialog download would need a bundled PDF lib, intentionally
-  avoided). Screen UI is hidden in `@media print`; the print doc is hidden on
-  screen. Keep this split. No footer (header address suffices). Page numbers via
-  `@page { @bottom-right { content: counter(page) "/" counter(pages) } }`
-  (best-effort; not all print engines render margin boxes). Signature blocks have
-  generous blank space above the line for a handwritten signature.
+- PDF is generated client-side for a direct download (no browser print dialog,
+  no header/footer stamp). `downloadPdf()` lazy-loads html2pdf, ensures defect
+  photos are data URLs (`ensurePhotoDataUrls` — avoids cross-origin canvas taint),
+  builds the hidden `.print-doc` (`buildPrint`), and renders it to A4 via
+  html2pdf, then stamps "Seite X / Y" per page with jsPDF and saves. The
+  `.print-doc` is laid out at a fixed 760px width inside `.print-host`
+  (`position:absolute;height:0;overflow:hidden`) so it's measurable but invisible
+  on screen — do NOT position `.print-doc` itself (html2pdf clones it; an absolute/
+  fixed clone collapses the capture to 0 height). All `.p-*` styles live in normal
+  CSS (not `@media print`) so html2canvas sees them. No footer (header address
+  suffices); signature blocks have blank space above the line for a handwritten
+  signature. Output is rasterized (image-based) — keep `html2canvas.scale` ~1.6 to
+  balance crispness against file size.
 - Language: the **app UI/chrome is German-only** (navigation, reports overview,
   user admin, toasts, dialogs). **Customer-facing content stays bilingual**
   (German primary, English secondary): the report-creation form fields/section

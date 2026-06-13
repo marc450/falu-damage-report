@@ -290,65 +290,59 @@
   .urow button:hover{border-color:var(--falu-red);color:var(--falu-red)}
   .urow button:disabled{opacity:.4;cursor:default}
 
-  /* ---------- print / PDF ---------- */
-  .print-doc{display:none}
+  /* ---------- PDF document (rendered to PDF client-side; clipped/hidden on screen) ---------- */
+  .print-host{position:absolute;top:0;left:0;width:760px;height:0;overflow:hidden;z-index:-1;pointer-events:none}
+  .print-doc{color:#222;font-size:10.5px;font-family:var(--font-sans);background:#fff}
+  .p-top{display:flex;align-items:flex-start;justify-content:space-between;
+         border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:4px}
+  .p-top-l{display:flex;gap:12px;align-items:center}
+  .p-top-l img{width:50px;height:50px;display:block}
+  .p-top-l .m strong{display:block;font-size:15px;color:var(--navy);font-weight:600;letter-spacing:-0.01em}
+  .p-top-l .m span{font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;
+                   text-transform:uppercase;color:var(--ink-muted)}
+  .p-addr{text-align:right;font-family:var(--font-mono);font-size:9px;line-height:1.6;
+          color:var(--ink-soft);letter-spacing:0.02em}
+  .p-addr b{color:var(--navy)}
+  .p-title{font-size:26px;font-weight:600;color:var(--navy);letter-spacing:-0.02em;margin:12px 0 2px}
+  .p-sub{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.16em;
+         color:var(--falu-red);margin-bottom:14px}
+  .p-eyebrow{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.16em;
+             color:var(--ink-muted);border-bottom:1px solid var(--navy);padding-bottom:3px;margin:16px 0 8px}
+  .p-eyebrow b{color:var(--falu-red)}
+  table.p-meta{width:100%;border-collapse:collapse;margin-bottom:4px}
+  table.p-meta td{border:1px solid var(--rule);padding:5px 8px;vertical-align:top}
+  .p-lab{background:var(--bg-alt);width:23%;font-weight:600;color:var(--navy)}
+  .p-lab em{display:block;font-style:normal;font-family:var(--font-mono);font-weight:400;
+            color:var(--ink-muted);font-size:8px;letter-spacing:0.06em;text-transform:uppercase}
+  .p-card{border:1px solid var(--rule);border-left:4px solid var(--rule);margin-bottom:10px;
+          page-break-inside:avoid}
+  .p-card.sev-safety{border-left-color:var(--falu-red)}
+  .p-card.sev-func{border-left-color:var(--navy)}
+  .p-card.sev-minor{border-left-color:var(--ink-muted)}
+  .p-card-bar{background:var(--navy);color:#fff;padding:5px 9px;display:flex;
+              justify-content:space-between;align-items:center}
+  .p-card-bar b{font-family:var(--font-mono);letter-spacing:0.12em;font-size:10px;font-weight:500}
+  .p-badge{font-family:var(--font-mono);font-size:8.5px;font-weight:500;text-transform:uppercase;
+           letter-spacing:0.06em;padding:2px 8px;background:#fff;color:var(--navy)}
+  .p-badge.safety{background:var(--falu-red);color:#fff}
+  .p-card table{width:100%;border-collapse:collapse}
+  .p-card td{border-top:1px solid var(--rule-soft);padding:5px 9px;vertical-align:top}
+  .p-card td.p-lab{width:23%}
+  .p-photos{display:flex;flex-wrap:wrap;gap:6px;padding:7px 9px}
+  .p-photos img{width:31%;max-height:150px;object-fit:cover;border:1px solid var(--rule)}
+  .p-sign{margin-top:18px;display:flex;gap:40px;page-break-inside:avoid}
+  .p-sign-box{flex:1;display:flex;flex-direction:column}
+  .p-sign-name{min-height:52px;font-size:11px;font-weight:600;color:var(--ink);padding:0 2px 3px}
+  .p-sign-line{border-top:1px solid var(--ink-muted)}
+  .p-sign-role{padding-top:4px;font-family:var(--font-mono);font-size:9px;
+               letter-spacing:0.04em;text-transform:uppercase;color:var(--navy);font-weight:500}
+  .p-sign-meta{margin-top:1px;font-family:var(--font-mono);font-size:8px;
+               letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-muted)}
   @media print{
-    @page{size:A4;margin:14mm 12mm 16mm;
-      @bottom-right{content:"Seite " counter(page) " / " counter(pages);
-        font-family:"JetBrains Mono","IBM Plex Mono",ui-monospace,monospace;font-size:8px;color:#8a8a8a}}
+    @page{size:A4;margin:14mm 12mm}
     body{background:#fff}
-    .app{display:none !important}
-    .auth,.toast,.panel,.modal{display:none !important}
-    .print-doc{display:block !important;color:#222;font-size:10.5px;font-family:var(--font-sans)}
-    .p-top{display:flex;align-items:flex-start;justify-content:space-between;
-           border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:4px}
-    .p-top-l{display:flex;gap:12px;align-items:center}
-    .p-top-l img{width:50px;height:50px;display:block}
-    .p-top-l .m strong{display:block;font-size:15px;color:var(--navy);font-weight:600;letter-spacing:-0.01em}
-    .p-top-l .m span{font-family:var(--font-mono);font-size:9px;letter-spacing:0.12em;
-                     text-transform:uppercase;color:var(--ink-muted)}
-    .p-addr{text-align:right;font-family:var(--font-mono);font-size:9px;line-height:1.6;
-            color:var(--ink-soft);letter-spacing:0.02em}
-    .p-addr b{color:var(--navy)}
-    .p-title{font-size:26px;font-weight:600;color:var(--navy);letter-spacing:-0.02em;margin:12px 0 2px}
-    .p-sub{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.16em;
-           color:var(--falu-red);margin-bottom:14px}
-    .p-eyebrow{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.16em;
-               color:var(--ink-muted);border-bottom:1px solid var(--navy);padding-bottom:3px;margin:16px 0 8px}
-    .p-eyebrow b{color:var(--falu-red)}
-    table.p-meta{width:100%;border-collapse:collapse;margin-bottom:4px}
-    table.p-meta td{border:1px solid var(--rule);padding:5px 8px;vertical-align:top}
-    .p-lab{background:var(--bg-alt);width:23%;font-weight:600;color:var(--navy)}
-    .p-lab em{display:block;font-style:normal;font-family:var(--font-mono);font-weight:400;
-              color:var(--ink-muted);font-size:8px;letter-spacing:0.06em;text-transform:uppercase}
-    .p-card{border:1px solid var(--rule);border-left:4px solid var(--rule);margin-bottom:10px;
-            page-break-inside:avoid}
-    .p-card.sev-safety{border-left-color:var(--falu-red)}
-    .p-card.sev-func{border-left-color:var(--navy)}
-    .p-card.sev-minor{border-left-color:var(--ink-muted)}
-    .p-card-bar{background:var(--navy);color:#fff;padding:5px 9px;display:flex;
-                justify-content:space-between;align-items:center}
-    .p-card-bar b{font-family:var(--font-mono);letter-spacing:0.12em;font-size:10px;font-weight:500}
-    .p-badge{font-family:var(--font-mono);font-size:8.5px;font-weight:500;text-transform:uppercase;
-             letter-spacing:0.06em;padding:2px 8px;background:#fff;color:var(--navy)}
-    .p-badge.safety{background:var(--falu-red);color:#fff}
-    .p-card table{width:100%;border-collapse:collapse}
-    .p-card td{border-top:1px solid var(--rule-soft);padding:5px 9px;vertical-align:top}
-    .p-card td.p-lab{width:23%}
-    .p-photos{display:flex;flex-wrap:wrap;gap:6px;padding:7px 9px}
-    .p-photos img{width:31%;max-height:150px;object-fit:cover;border:1px solid var(--rule)}
-    .p-sign{margin-top:18px;display:flex;gap:40px;page-break-inside:avoid}
-    .p-sign-box{flex:1;display:flex;flex-direction:column}
-    .p-sign-name{min-height:52px;font-size:11px;font-weight:600;color:var(--ink);
-                 padding:0 2px 3px}
-    .p-sign-line{border-top:1px solid var(--ink-muted)}
-    .p-sign-role{padding-top:4px;font-family:var(--font-mono);font-size:9px;
-                 letter-spacing:0.04em;text-transform:uppercase;color:var(--navy);font-weight:500}
-    .p-sign-meta{margin-top:1px;font-family:var(--font-mono);font-size:8px;
-                 letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-muted)}
-    .p-foot{margin-top:18px;border-top:1px solid var(--rule);padding-top:6px;
-            font-family:var(--font-mono);font-size:8px;letter-spacing:0.04em;
-            text-transform:uppercase;color:var(--ink-muted);text-align:center}
+    .app,.auth,.toast,.panel,.modal{display:none !important}
+    .print-host{position:static;height:auto;overflow:visible;width:auto;z-index:auto}
   }
 </style>
 </head>
@@ -486,7 +480,7 @@
   </div>
 </div>
 
-<div class="print-doc" id="printDoc"></div>
+<div class="print-host"><div class="print-doc" id="printDoc"></div></div>
 
 <script>
 "use strict";
@@ -1283,12 +1277,62 @@ async function copyReportLink(){
     toast("Link kopiert ✓","ok");
   }catch(e){ toast("Link konnte nicht kopiert werden.","err"); }
 }
-function downloadPdf(){
-  buildPrint();
-  const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
-  const prev=document.title; document.title="Maengelprotokoll_"+safe;
-  window.print();
-  setTimeout(()=>{document.title=prev;},800);
+let _html2pdf=null;
+function loadHtml2Pdf(){
+  if(_html2pdf) return Promise.resolve(_html2pdf);
+  if(window.html2pdf){_html2pdf=window.html2pdf;return Promise.resolve(_html2pdf);}
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js";
+    s.onload=()=>{_html2pdf=window.html2pdf; resolve(_html2pdf);};
+    s.onerror=()=>reject(new Error("PDF-Bibliothek konnte nicht geladen werden (offline?)."));
+    document.head.appendChild(s);
+  });
+}
+function blobToDataUrl(blob){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(blob);});}
+async function ensurePhotoDataUrls(){
+  // PDF rendering rasterizes the doc; convert any storage-path photos to data URLs
+  // so they embed without cross-origin canvas issues.
+  for(const d of state.defects){
+    const ph=d.photos||[];
+    for(let i=0;i<ph.length;i++){
+      const p=ph[i];
+      if(isDataUrl(p)) continue;
+      if(signedCache[p]&&signedCache[p].indexOf("data:")===0) continue;
+      try{
+        const url=signedCache[p]||await signPath(p);
+        const resp=await fetch(url);
+        const blob=await resp.blob();
+        signedCache[p]=await blobToDataUrl(blob);
+      }catch(e){/* leave as-is; html2canvas will try useCORS */}
+    }
+  }
+}
+async function downloadPdf(){
+  const doc=document.getElementById("printDoc");
+  toast("PDF wird erstellt…");
+  try{
+    const lib=await loadHtml2Pdf();
+    await ensurePhotoDataUrls();
+    buildPrint();
+    const safe=((state.header.datum||"")+"_"+(state.header.kunde||"Maengelprotokoll")).replace(/[^\w\-]+/g,"_");
+    await lib().set({
+      margin:[10,10,14,10],
+      filename:"Maengelprotokoll_"+safe+".pdf",
+      image:{type:"jpeg",quality:0.92},
+      html2canvas:{scale:1.6,useCORS:true,backgroundColor:"#ffffff"},
+      jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"]}
+    }).from(doc).toPdf().get("pdf",function(pdf){
+      const n=pdf.internal.getNumberOfPages();
+      const w=pdf.internal.pageSize.getWidth(), h=pdf.internal.pageSize.getHeight();
+      for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(140);
+        pdf.text("Seite "+i+" / "+n, w-10, h-6, {align:"right"});}
+    }).save();
+    toast("PDF heruntergeladen ✓","ok");
+  }catch(e){
+    toast("PDF-Fehler: "+e.message,"err");
+  }
 }
 async function deleteReport(id){
   if(!await modalConfirm("Bericht endgültig löschen?",{okLabel:"Löschen",danger:true})) return;
