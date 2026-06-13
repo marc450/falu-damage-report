@@ -21,7 +21,7 @@ Rules:
 - Translate to English and fix grammar, spelling, and phrasing.
 - Preserve ALL technical detail: part names, component names, measurements, numbers, positions, model/serial designations. Do not invent or omit information.
 - Keep it concise — a complete sentence or two, in a neutral technical tone.
-- Terminology: this is cotton/textile machinery. Use "cotton", "cotton sliver", and "fleece" for the fiber material — never "wadding", "batting", or "wool". (e.g. German "Watte" / "Faserband" → "cotton" / "cotton sliver"; "Vlies" → "fleece".)
+- Terminology: this is cotton/textile machinery. Use "cotton", "cotton sliver", and "fleece" for the fiber material — never "wadding", "batting", or "wool". German→English: "Watteschnur" → "cotton sliver"; "Faserband" → "cotton sliver"; "Watte" → "cotton"; "Vlies" → "fleece".
 - Output ONLY the rewritten English text. No preamble, no quotation marks, no explanations, no notes about what you changed.`;
 
 Deno.serve(async (req) => {
