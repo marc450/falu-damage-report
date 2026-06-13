@@ -205,6 +205,9 @@
   .panel-bar h2{margin:0;font-size:16px;color:var(--navy);font-weight:600}
   .panel-body{padding:20px 24px 60px}
   @media(max-width:560px){.panel-bar{padding:12px 16px}.panel-body{padding:16px}}
+  .lockup--link{cursor:pointer}
+  .lockup--link:hover .lockup-meta strong{color:var(--falu-red)}
+  .page-title{font-size:20px;color:var(--navy);font-weight:600;letter-spacing:-0.01em;margin:0 0 18px}
 
   .rep{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;
        border:1px solid var(--rule);border-left:4px solid var(--navy);padding:12px 14px;margin-bottom:10px;
@@ -304,8 +307,8 @@
 <body>
 <div class="app">
   <div class="topbar">
-    <div class="lockup">
-      <img id="logoImg" alt="Falu">
+    <div class="lockup lockup--link" id="formHome" title="Zu allen Berichten">
+      <img id="logoImg" class="applogo" alt="Falu">
       <div class="lockup-meta"><strong>Mängelprotokoll</strong><span>Defect Report</span></div>
     </div>
     <div class="toolbtns">
@@ -346,31 +349,42 @@
 <div class="panel" id="reportsView">
   <div class="panel-inner">
     <div class="panel-bar">
-      <h2 id="reportsTitle">Berichte · Reports</h2>
+      <div class="lockup lockup--link" id="reportsHome" title="Zu allen Berichten">
+        <img class="applogo" alt="Falu">
+        <div class="lockup-meta"><strong>FALU</strong><span>Mängelprotokoll</span></div>
+      </div>
       <div class="toolbtns">
         <button class="btn btn--primary" id="btnNewReport">+&nbsp;Neuer Bericht</button>
         <button class="btn btn--ghost" id="btnUsers2" style="display:none">Benutzer</button>
         <button class="btn btn--ghost" id="btnReportsLogout">Abmelden</button>
-        <button class="btn btn--ghost" id="btnReportsClose">Schliessen</button>
       </div>
     </div>
-    <div class="panel-body" id="reportsList"></div>
+    <div class="panel-body">
+      <h2 class="page-title" id="reportsTitle">Berichte</h2>
+      <div id="reportsList"></div>
+    </div>
   </div>
 </div>
 
 <div class="panel" id="usersView">
   <div class="panel-inner">
     <div class="panel-bar">
-      <h2>Benutzer · Users</h2>
-      <button class="btn btn--ghost" id="btnUsersClose">Schliessen</button>
+      <div class="lockup lockup--link" id="usersHome" title="Zu allen Berichten">
+        <img class="applogo" alt="Falu">
+        <div class="lockup-meta"><strong>FALU</strong><span>Mängelprotokoll</span></div>
+      </div>
+      <div class="toolbtns">
+        <button class="btn btn--ghost" id="btnUsersLogout">Abmelden</button>
+      </div>
     </div>
     <div class="panel-body">
+      <h2 class="page-title">Benutzer</h2>
       <div class="userform">
-        <label for="newEmail">Neue:r Benutzer:in · New user</label>
+        <label for="newEmail">Neue:r Benutzer:in</label>
         <input type="email" id="newEmail" placeholder="E-Mail" autocomplete="off" autocapitalize="none">
-        <input type="password" id="newPass" placeholder="Passwort · Password" autocomplete="new-password">
-        <label class="chk"><input type="checkbox" id="newAdmin"> Administrator:in (Vollzugriff · full access)</label>
-        <button id="btnCreateUser">Anlegen · Create</button>
+        <input type="password" id="newPass" placeholder="Passwort" autocomplete="new-password">
+        <label class="chk"><input type="checkbox" id="newAdmin"> Administrator:in (Vollzugriff)</label>
+        <button id="btnCreateUser">Anlegen</button>
       </div>
       <div id="usersList"></div>
     </div>
@@ -413,9 +427,7 @@
 <script>
 "use strict";
 const LOGO="data:image/png;base64,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";
-document.getElementById("logoImg").src=LOGO;
-document.getElementById("authLogo").src=LOGO;
-document.getElementById("resetLogo").src=LOGO;
+document.querySelectorAll("img.applogo,#authLogo,#resetLogo").forEach(i=>i.src=LOGO);
 
 // ---- Supabase (shared "Whatsapp <> Slack Bridge" project; Falu objects are namespaced) ----
 const SUPABASE_URL="https://xasehavpvasplrhvwyuu.supabase.co";
@@ -743,7 +755,8 @@ function establishSession(access,refresh,user){
   document.getElementById("btnUsers").style.display=isAdmin?"":"none";
   document.getElementById("btnUsers2").style.display=isAdmin?"":"none";
   updateAuthStatus();
-  openReports(); // land on the reports overview
+  // land on the requested route (deep link) or the reports overview
+  navigate((location.hash&&location.hash.indexOf("#/")===0)?location.hash:"#/reports");
 }
 async function fetchUser(token){
   const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+token}});
@@ -883,7 +896,7 @@ async function sendReport(){
   const btn=document.getElementById("btnSend");
   btn.disabled=true;
   const updating=!!state.reportId;
-  toast(updating?"Wird aktualisiert… · Updating…":"Wird gesendet… · Sending…");
+  toast(updating?"Wird aktualisiert…":"Wird gesendet…");
   try{
     const reportId=state.reportId||(crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+uid);
     const h=state.header;
@@ -926,9 +939,10 @@ async function sendReport(){
     state.reportId=reportId;
     state.defects=defectsOut.map((d,i)=>Object.assign({},state.defects[i],{photos:d.photos}));
     updateSendLabel();
-    toast(updating?"Aktualisiert ✓ · Updated":"An Zentrale gesendet ✓ · Submitted to central","ok");
+    if(!updating) history.replaceState(null,"","#/report/"+reportId);
+    toast(updating?"Aktualisiert ✓":"An Zentrale gesendet ✓","ok");
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex"; toast("Sitzung abgelaufen — bitte neu anmelden. · Session expired, please sign in again.","err");}
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex"; toast("Sitzung abgelaufen — bitte neu anmelden.","err");}
     else toast("Fehler: "+e.message+" — bitte „Speichern\" nutzen und später erneut senden.","err");
   }finally{
     btn.disabled=false;
@@ -936,27 +950,46 @@ async function sendReport(){
 }
 document.getElementById("btnSend").addEventListener("click",sendReport);
 
-/* ---------- new / reports overview / CRUD ---------- */
+/* ---------- routing + views ---------- */
 const reportsView=document.getElementById("reportsView");
 const usersView=document.getElementById("usersView");
 
-function newReport(){
-  if((state.defects.length>1)||state.reportId||state.header.kunde||state.header.serienNr){
-    if(!confirm("Neues Protokoll? Nicht gesendete Änderungen gehen verloren. · New report? Unsent changes are lost.")) return false;
+function showOnly(view){
+  reportsView.classList.toggle("show",view==="reports");
+  usersView.classList.toggle("show",view==="users");
+}
+function navigate(h){ if((location.hash||"")===h) router(); else location.hash=h; }
+async function router(){
+  if(!session) return;
+  const h=location.hash||"#/reports";
+  if(h.indexOf("#/users")===0){
+    if(!session.isAdmin){navigate("#/reports");return;}
+    showOnly("users"); await loadUsers(); return;
   }
+  if(h.indexOf("#/report/")===0){ showOnly("form"); await openReport(decodeURIComponent(h.slice(9))); return; }
+  if(h==="#/new"){ showOnly("form"); newReport(true); return; }
+  showOnly("reports"); await openReports();
+}
+window.addEventListener("hashchange",router);
+
+function confirmDiscard(){
+  if((state.defects.length>1)||state.reportId||state.header.kunde||state.header.serienNr)
+    return confirm("Neues Protokoll? Nicht gesendete Änderungen gehen verloren.");
+  return true;
+}
+function newReport(skipConfirm){
+  if(!skipConfirm && !confirmDiscard()) return false;
   state.header={datum:new Date().toISOString().slice(0,10)};
   state.defects=[]; state.reportId=null; state.reportEmail=null;
   uid=1; syncHeaderInputs(); addDefect();
   return true;
 }
-document.getElementById("btnNew").addEventListener("click",newReport);
 
 async function openReports(){
   if(!session){authGate.style.display="flex";return;}
-  reportsView.classList.add("show");
-  document.getElementById("reportsTitle").textContent=session.isAdmin?"Alle Berichte · All reports":"Meine Berichte · My reports";
+  document.getElementById("reportsTitle").textContent=session.isAdmin?"Alle Berichte":"Meine Berichte";
   const listEl=document.getElementById("reportsList");
-  listEl.innerHTML="<p class='hint'>Laden… · Loading…</p>";
+  listEl.innerHTML="<p class='hint'>Laden…</p>";
   try{
     const sel="id,created_at,updated_at,datum,kunde,serien_nr,maschinentyp,defect_count,safety_count,created_by_email";
     const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?select="+sel+"&order=created_at.desc");
@@ -964,19 +997,19 @@ async function openReports(){
     if(!r.ok) throw new Error(rows.message||("Fehler "+r.status));
     renderReportList(rows);
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){reportsView.classList.remove("show");authGate.style.display="flex";return;}
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
     listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
   }
 }
 function renderReportList(rows){
   const listEl=document.getElementById("reportsList");
-  if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Berichte. · No reports.</div>";return;}
+  if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Berichte.</div>";return;}
   listEl.innerHTML="";
   rows.forEach(row=>{
     const el=document.createElement("div");
     el.className="rep"+((row.safety_count>0)?" has-safety":"");
     const date=row.datum||(row.created_at?row.created_at.slice(0,10):"");
-    const title=(date||"—")+" · "+(row.kunde||"Ohne Kunde · No customer");
+    const title=(date||"—")+" · "+(row.kunde||"Ohne Kunde");
     let meta=(row.serien_nr?(row.serien_nr+" · "):"")+(row.maschinentyp||"—")+" · "+(row.defect_count||0)+" Mängel";
     if(row.safety_count>0) meta+=" · "+row.safety_count+" sicherheitskritisch";
     if(session.isAdmin&&row.created_by_email) meta+=" · "+row.created_by_email;
@@ -987,7 +1020,7 @@ function renderReportList(rows){
     db.addEventListener("click",(e)=>{e.stopPropagation();deleteReport(row.id);});
     act.appendChild(db);
     el.appendChild(main); el.appendChild(act);
-    el.addEventListener("click",()=>openReport(row.id));
+    el.addEventListener("click",()=>navigate("#/report/"+row.id));
     listEl.appendChild(el);
   });
 }
@@ -1008,15 +1041,13 @@ async function openReport(id){
     uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
     await resolveSignedUrls();
     syncHeaderInputs(); render();
-    reportsView.classList.remove("show");
-    toast("Bericht geladen · Report loaded","ok");
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
     toast("Öffnen fehlgeschlagen: "+e.message,"err");
   }
 }
 async function deleteReport(id){
-  if(!confirm("Bericht endgültig löschen? · Permanently delete this report?")) return;
+  if(!confirm("Bericht endgültig löschen?")) return;
   try{
     // best-effort: remove the report's photos from storage
     const r0=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(id)+"&select=data");
@@ -1032,17 +1063,21 @@ async function deleteReport(id){
       {method:"DELETE",headers:{"Prefer":"return=minimal"}});
     if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
     if(state.reportId===id){state.reportId=null;state.reportEmail=null;updateSendLabel();}
-    toast("Bericht gelöscht · Deleted","ok");
-    openReports();
+    toast("Bericht gelöscht","ok");
+    navigate("#/reports");
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
     toast("Löschen fehlgeschlagen: "+e.message,"err");
   }
 }
-document.getElementById("btnReports").addEventListener("click",openReports);
-document.getElementById("btnReportsClose").addEventListener("click",()=>reportsView.classList.remove("show"));
-document.getElementById("btnNewReport").addEventListener("click",()=>{if(newReport()!==false)reportsView.classList.remove("show");});
+document.getElementById("btnReports").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("formHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("reportsHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("usersHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("btnNew").addEventListener("click",()=>{if(confirmDiscard())navigate("#/new");});
+document.getElementById("btnNewReport").addEventListener("click",()=>{if(confirmDiscard())navigate("#/new");});
 document.getElementById("btnReportsLogout").addEventListener("click",logout);
+document.getElementById("btnUsersLogout").addEventListener("click",logout);
 
 /* ---------- admin: user management ---------- */
 async function callAdmin(action,payload){
@@ -1052,14 +1087,9 @@ async function callAdmin(action,payload){
   if(!r.ok) throw new Error(j.error||("Fehler "+r.status));
   return j;
 }
-async function openUsers(){
-  if(!session||!session.isAdmin){toast("Nur für Administrator:innen.","err");return;}
-  usersView.classList.add("show");
-  await loadUsers();
-}
 async function loadUsers(){
   const listEl=document.getElementById("usersList");
-  listEl.innerHTML="<p class='hint'>Laden… · Loading…</p>";
+  listEl.innerHTML="<p class='hint'>Laden…</p>";
   try{
     const j=await callAdmin("list");
     const users=j.users||[];
@@ -1074,9 +1104,9 @@ async function loadUsers(){
       else del.addEventListener("click",()=>deleteUser(u.id,u.email));
       el.appendChild(left); el.appendChild(del); listEl.appendChild(el);
     });
-    if(!users.length) listEl.innerHTML="<div class='empty'>Keine Benutzer. · No users.</div>";
+    if(!users.length) listEl.innerHTML="<div class='empty'>Keine Benutzer.</div>";
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){usersView.classList.remove("show");authGate.style.display="flex";return;}
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
     listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
   }
 }
@@ -1091,21 +1121,20 @@ async function createUser(){
     document.getElementById("newEmail").value="";
     document.getElementById("newPass").value="";
     document.getElementById("newAdmin").checked=false;
-    toast("Benutzer:in angelegt ✓ · User created","ok");
+    toast("Benutzer:in angelegt ✓","ok");
     loadUsers();
   }catch(e){
-    if(e.message==="SESSION_EXPIRED"){usersView.classList.remove("show");authGate.style.display="flex";}
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";}
     else toast("Anlegen fehlgeschlagen: "+e.message,"err");
   }finally{btn.disabled=false;}
 }
 async function deleteUser(id,email){
-  if(!confirm("Benutzer:in „"+email+"\" löschen? · Delete this user?")) return;
-  try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht · User deleted","ok"); loadUsers(); }
+  if(!confirm("Benutzer:in „"+email+"\" löschen?")) return;
+  try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht","ok"); loadUsers(); }
   catch(e){ toast("Löschen fehlgeschlagen: "+e.message,"err"); }
 }
-document.getElementById("btnUsers").addEventListener("click",openUsers);
-document.getElementById("btnUsers2").addEventListener("click",openUsers);
-document.getElementById("btnUsersClose").addEventListener("click",()=>usersView.classList.remove("show"));
+document.getElementById("btnUsers").addEventListener("click",()=>navigate("#/users"));
+document.getElementById("btnUsers2").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnCreateUser").addEventListener("click",createUser);
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());

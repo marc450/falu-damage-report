@@ -27,9 +27,19 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - The PDF is produced by building a hidden `.print-doc` from state and calling
   `window.print()`. Screen UI is hidden in `@media print`; the print doc is
   hidden on screen. Keep this split.
-- Labels are bilingual: German primary, English secondary. EXCEPTION: the
-  authentication screens (`#authGate` login + `#resetGate` password reset) and
-  their inline messages are English-only, per request.
+- Language: the **app UI/chrome is German-only** (navigation, reports overview,
+  user admin, toasts, dialogs). **Customer-facing content stays bilingual**
+  (German primary, English secondary): the report-creation form fields/section
+  labels and the printed PDF — because the customer/SAT sees that output.
+  EXCEPTION: the authentication screens (`#authGate` login + `#resetGate` reset)
+  and their messages are English-only, per request.
+- Navigation is hash-routed (`router()` on `hashchange`): `#/reports` (overview,
+  default landing), `#/new` (blank form), `#/report/<id>` (load+edit a report),
+  `#/users` (admin). `navigate(h)` sets the hash (or calls `router()` if
+  unchanged); `showOnly(view)` toggles the `#reportsView`/`#usersView` overlays
+  over the base `.app` form. The FALU logo lockup in every header (`#formHome`,
+  `#reportsHome`, `#usersHome`) links to `#/reports`. After a new report is sent,
+  `history.replaceState` updates the URL to `#/report/<id>` without reloading.
 
 ## Central reporting (Supabase)
 - Backend is the **shared** Supabase project "Whatsapp <> Slack Bridge"
