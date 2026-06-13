@@ -1014,7 +1014,7 @@ async function sendReport(){
           const path=session.userId+"/"+reportId+"/"+di+"-"+pi+"-"+Date.now()+".jpg";
           const up=await authFetch(SUPABASE_URL+"/storage/v1/object/"+SB_BUCKET+"/"+path,
             {method:"POST",headers:{"Content-Type":blob.type,"x-upsert":"true"},body:blob});
-          if(!up.ok) throw new Error("Foto-Upload fehlgeschlagen ("+up.status+")");
+          if(!up.ok){const t=await up.text(); throw new Error("Foto-Upload fehlgeschlagen ("+up.status+"): "+t.slice(0,140));}
           photos.push(path);
         } else { photos.push(src); } // already-uploaded path, keep as-is
       }
