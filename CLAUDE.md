@@ -34,8 +34,7 @@ All HTML, CSS, JavaScript, and the logo (base64) live in `index.html`.
 - Severity edge colours: safety = red, functional = navy, minor = ink-muted.
 
 ## Company details shown on the document
-FALU AG · Buchsweg 8, 4132 Muttenz, Switzerland · +41 61 555 12 34 · info@falu.ch
-(Phone/email may be placeholders pending confirmation from the owner.)
+FALU AG · Joweidzentrum 5, 8630 Rüti, Switzerland · +41 55 225 51 51 · sales@falu.com
 
 ## When making changes
 - Match the existing token values above; don't introduce new colours/fonts.
