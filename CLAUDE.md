@@ -36,9 +36,16 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - `SUPABASE_URL` / `SUPABASE_ANON_KEY` are constants in `index.html`. The anon
   key is public (the site is public on GitHub Pages) — security relies on RLS,
   not key secrecy.
-- Auth: Supabase email/password. A full-screen `.auth` gate blocks the app until
-  login. Calls hit `/auth/v1/token` directly via `fetch` (no SDK). Access tokens
-  are refreshed via `refresh_token` on a 401 (`authFetch` retries once).
+- Auth: Supabase email/password, presented as a general **FALU account** login
+  (not app-specific branding). A full-screen `.auth` gate (`#authGate`) blocks the
+  app until login. Calls hit `/auth/v1/token` directly via `fetch` (no SDK).
+  Access tokens are refreshed via `refresh_token` on a 401 (`authFetch` retries
+  once). `establishSession()` is the shared entry used by login and reset.
+- Password reset: "Passwort vergessen?" → POST `/auth/v1/recover?redirect_to=<app url>`
+  emails a link back to the app. On load, `handleRecoveryHash()` parses the URL
+  hash; `type=recovery` + `access_token` shows the `#resetGate` set-new-password
+  view, which PUTs `/auth/v1/user` then establishes the session. NOTE: the app URL
+  must be listed in Supabase Auth → URL Configuration (Site URL + Redirect URLs).
 - Submit (`sendReport`) is an upsert: `state.reportId` null → INSERT (new uuid,
   sets `created_by_email`), non-null → PATCH `?id=eq.{id}` (sets `updated_at`,
   preserves owner). For each defect, data-URL photos → Blob → uploaded to

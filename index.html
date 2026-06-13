@@ -181,6 +181,11 @@
                font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans)}
   .auth button:hover{background:var(--falu-red-dark)}
   .auth button:disabled{opacity:.6;cursor:default}
+  .auth .ok{color:var(--navy)}
+  .auth button.linklike{background:none;border:none;color:var(--navy);width:auto;padding:14px 0 0;
+                        font-size:12px;font-weight:500;text-decoration:underline;cursor:pointer;
+                        font-family:var(--font-sans)}
+  .auth button.linklike:hover{background:none;color:var(--falu-red)}
 
   /* ---------- toast ---------- */
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;
@@ -367,15 +372,30 @@
 
 <div class="auth" id="authGate">
   <div class="auth-card">
-    <div class="auth-lock"><img id="authLogo" alt="Falu"><div><strong>Mängelprotokoll</strong><span>Defect Report</span></div></div>
+    <div class="auth-lock"><img id="authLogo" alt="Falu"><div><strong>FALU</strong><span>Anmeldung · Sign in</span></div></div>
     <h2>Anmelden · Sign in</h2>
-    <div class="sub">FALU Zentrale · Central reporting</div>
+    <div class="sub">Mit FALU-Konto · Use your FALU account</div>
     <label for="authEmail">E-Mail</label>
     <input type="email" id="authEmail" autocomplete="username" inputmode="email" autocapitalize="none">
     <label for="authPass">Passwort · Password</label>
     <input type="password" id="authPass" autocomplete="current-password">
     <div class="err" id="authErr"></div>
     <button id="authBtn">Anmelden · Sign in</button>
+    <button id="authForgot" class="linklike">Passwort vergessen? · Forgot password?</button>
+  </div>
+</div>
+
+<div class="auth" id="resetGate" style="display:none">
+  <div class="auth-card">
+    <div class="auth-lock"><img id="resetLogo" alt="Falu"><div><strong>FALU</strong><span>Passwort · Password</span></div></div>
+    <h2>Neues Passwort · New password</h2>
+    <div class="sub">Bitte neues Passwort setzen · Set a new password</div>
+    <label for="resetPass1">Neues Passwort · New password</label>
+    <input type="password" id="resetPass1" autocomplete="new-password">
+    <label for="resetPass2">Wiederholen · Repeat</label>
+    <input type="password" id="resetPass2" autocomplete="new-password">
+    <div class="err" id="resetErr"></div>
+    <button id="resetBtn">Speichern · Save</button>
   </div>
 </div>
 
@@ -388,6 +408,7 @@
 const LOGO="data:image/png;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCADEAMQDACIAAREBAhEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMAAAERAhEAPwDmKKKK8Q/XAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAore0bw6t7aNqWo3Js9NVwgcKWeZ/wC4i9/r0Hvg40pLXw9EhV/D+urEOtwxwwHrjG2tFTbV9jkqY2lCbgk21vbp+l/Lc4+it7VvD8UFgNV0q6N5phbYzldrwsezjt2we/4jODUyi4uzNqNeFaPNB+vl6p6ntHwi/wCRUuv+v5//AECOu+rgfhF/yKl1/wBfz/8AoEdd9XpYb+Ej8/z7/kYVPl/6Sj5Zoooryz9FCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAO28QsbXxDoGlIcW1nHBsGOrMwJb8eM/SulvYPEEPii4vhrdvBpMM6tIslx8qJxkFexPQdOTXORJ/wk9ppmpWuZNS0wIl3bggvLGjAh1/vHrx7/TNN9e2eNL64FpPJZ3rGOe0dCGeMgD7vqOv9ea7VJLV7aHys6EqrUIpOUVO6avrdfi90XdAubfUvGGsWNsMabqMcw2gYHGSGHpzkj61w1dtDaR+D7K91CV3S8u42hsIJBtkVG6yOB0x/nrxxNY1b2131PUy5RdSUqesbRV+7V7/ADta/wDwD2j4Rf8AIqXX/X8//oEdd9XA/CL/AJFS6/6/n/8AQI676u3DfwkfIZ9/yMKny/8ASUfLNFFFeWfooUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQBJBPNbTLNBK8Uqcq6MVYflyK3R458SCHyv7Ufb0z5aZ/PGf1rnqKtTlHZmFXC0azvUgnYknuJrqZpriV5ZX6u7bifz5qOiipbb3NYQjBcsVZHtHwi/5FS6/6/n/9Ajrvq4H4Rf8AIqXX/X8//oEdd9Xp4b+Ej88z7/kYVPl/6Sj5Zoooryz9FCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA9o+EX/IqXX/X8/8A6BHXfVwPwi/5FS6/6/n/APQI676vUw38JH51n3/IwqfL/wBJR8s0UUV5Z+ihRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAe0fCL/AJFS6/6/n/8AQI676uB+EX/IqXX/AF/P/wCgR131ephv4SPzrPv+RhU+X/pKPlmiiivLP0UKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD2j4Rf8ipdf9fz/APoEdd9XA/CL/kVLr/r+f/0COu+r1MN/CR+dZ9/yMKny/wDSUfLNFFFeWfooUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAHtHwi/5FS6/wCv5/8A0COu+rgfhF/yKl1/1/P/AOgR131ephv4SPzrPv8AkYVPl/6Sj5ZrrvA3hK18VPfC5uJovs4Qr5eOd271B/uiuRr1D4OZ36zj0h/9nrgoxUppNaH2ubVp0MHOpTdmrWfzSND/AIVDpX/QQvP/ABz/AAo/4VDpf/P/AHn5p/hXomeOaxpvFeg288kMurWiSRsVdGkAKkHBBH1r0PYUl0PiY5xmEnaM2/l/wDlP+FQ6X/0ELz/x3/Cj/hUOl/8AQQvP/Hf8K6n/AITHw7/0GLP/AL+j/Gj/AITHw7/0GLP/AL+j/Gl7Gl2K/tXM/wCZ/d/wDybxz4QtfCosTbXE032jfu8zHG3b6AetVfBXhdPFGpzwTSyRQQxb2ePGdxOAOQRyMmt74o6xp2qrpf2C8gufL83f5ThtuduM4+hre+E2nGDQri+ZcNcy4B9VUY/mWrmdOLrcq2PfjmFenlTr1H7+qT+f+Q3/AIVDpf8A0ELz/wAd/wAKr3vwmsYbKd7a9unnWNmjVtuGYA4B49a9Kd1jAZmABIHJ7k4FPIyDXV9Xp9j51Z3j9/afl/kfLVFa/inT/wCy/E+o2gXCrMWUeit8w/Q1kV5kk1JrsfoVCqqtKNRdUmdv4I8E2fijT7m4ubqeFopdgEe3ngHJyD611B+EWlAE/wBoXn/jn+FHwh/5Al//ANfP/sor0Vj8p+ld1GjCUE2j43Nc1xdHFzp052S9Ox8uyqElZQSQrEAn2NNqS4/4+Jf98/zqOuB7n2lN3gmwruPBPgmz8UadcXNxczxNFN5YEe3ngHnIPPNcPXsHwi/5AV7/ANfP/sq1rQipTSeqPOzmvUoYSVSk7NW/MQ/CLSwpP9oXnH+7/hXkLgLIy5yASK+om+630r5fl/1z/wC8f51tiacYJcqPN4fx2IxU5qtK9rW28xldn4H8G2nim3u5Lm4miMDqo8vGCCM9wa4yvWfg/wD8eWp/9dE/kaxoRUppPY9TOK9Shg51Kbs1bX5omb4RaWAT/aF5/wCO/wCFeT3kK219cQKSVilZAT1IBIBP5V9ON90/SvmfVf8AkMXv/XxJ/wChGtsTTjBLlR5OQY/EYmrNVpXsvI9d+EX/ACKl1/1/P/6BHXfVwPwi/wCRUuv+v5//AECOu+row/8ACR4Wff8AIwqfL/0lHyzXqHwb/wBZrP0h/wDZ68vr1D4N/wCs1n6Q/wDs9cWH/ir+uh9hnn+4VPl+aPVT0NfNniL/AJGbVv8Ar8m/9DNfSR6V8/694e1qXxFqckek3ro93KyssDEMC5IIxwQRzmurFK8VY+Z4blGOKk5P7P6o5uitT/hGtd/6A1//AOA7/wCFRXOiarZQNPdabdwRLjc8kLKBzjkkcZJArgtI+3VSk9E02/QoV9H+GdP/ALK8OWFmRtaOEBx/tHk/qTXg/hfT/wC0/E+nWhGVaYMw9VX5j+gr6OAwMV14SOrkfL8UV7RhRXr+n+Zw3xK1ptKsdMEZw7XaSkDusZDH9dtdrFIssSOhBVgCD7V418Vr83HiWGzByttCMj0Zjk/ptr0fwNf/ANoeDtOlJyyR+U3rlDt/pn8a6I1L1HE8avguTLqde2rbv89vyPP/AItad5OtWl+q4W4iKNj1U9T+DD8q88r3D4n6d9t8JPOoy9pIsox6Z2n9Dn8K8PrjxMbVPU+p4er+1wai/su36nsHwg/5Al//ANfP/sor0RvuH6GvO/hB/wAgS/8A+vn/ANlFeiN90/Q12UP4aPk86/3+p/XRHy/cf8fEv++f51HUlx/x8S/75/nUdeXLc/RKP8OIV7B8If8AkBX3/Xz/AOyrXj9ew/CH/kBX3/X1/wCyrW2G/iI8riD/AHGXy/M9Db7jfSvl6X/XP/vH+dfUL/cb6V8vS/65/wDeP863xmyPH4W+Op6L9Rles/B7/jy1T/ron8jXk1es/B7/AI8tU/66J/I1hhv4q/roe1n3+4T+X5o9Mb7p+lfMuq/8hi9/6+JP/QjX0033T9K+ZdV/5DF7/wBfEn/oRroxfwo8Lhf+NU9Eeu/CL/kVLr/r+f8A9Ajrvq4H4Rf8ipdf9fz/APoEdd9WuG/hI87Pv+RhU+X/AKSj5Zr1D4N/6zWfpD/7PXl9eofBv/Waz9If/Z64sP8AxV/XQ+wzz/cKny/NHqvFJx6Cg+o614zrHxF8Q2et39rDNCIobiSNAYhwoYgZPfgCvRnOMFdnweDwVXFzcKW9rnsxArk/iSAPAt+cfxRf+jFrzj/hZviU/wDLxB/35FUtV8c63rWmyWF5LE0EhBYLGAeCCOfqBWE8TBxaPYw2Q4ynWhOVrJrr5m98JdO+0a3d3xHy28QQZ/vMeo/BT+dexHgE1xPwu0/7H4UW4YfPdytJz/dHyj+Wfxrs5UMkToGKFlIDDqM96vDxtT9Tkz2v7XGy7R0/r5nzn4mvzqfibUbvOQ8zBT6qOF/QCvR/hDfeZpt/YseYpRIPowxx7ZWpP+FRaX/0ELz/AMd/wra8NeB7TwxfS3VteXEpkj2FJMY6gg8Aen61jTpVFV52j1MZmOCqZf8AVoS1SVtH0N/VLJNQ0u6s3xtniaM/iMV80yxPDM8UilXRirA9iDgj86+oep5rwDx7pw07xjfIq4jmYTr77hk/+PbqrFxvFMx4Yr8tadJ9Vf7ju/hB/wAgS/8A+vn/ANlFeiN90/Q1538IP+QJf/8AXz/7KK9Eb7p+hrXD/wANHm51/v8AU/roj5fuP+PiX/fP86jqS4/4+Jf98/zqOvLlufolH+HEK9h+EP8AyAr7/r6/9lWvHq9h+EP/ACAr7/r5/wDZVrbDfxEeVxB/uMvl+Z6G/wBxvpXy9L/rn/3j/OvqFvuN9K+XpgRPID1DH+db4zZHj8LfHU9F+oyvWfg9/wAeWqf9dE/ka8mr1n4Pf8eWqenmJ/I1hhv4q/roe1n3+4T+X5o9Mb7p+lfMuq/8hi9/6+JP/QjX0y33T9K+ZtV/5DF7/wBfEn/oRroxfwo8Lhf+NU9F+Z678Iv+RUuv+v5//QI676uB+EX/ACKl1/1/P/6BHXfVrhv4SPOz7/kYVPl/6Sj5Zr1D4N/6zWfpD/7PXl9eofBv/Waz9If/AGeuLD/xV/XQ+wzz/cKny/NHqp6GvmzxD/yM2rf9fk3/AKGa+kz0NfNniH/kZtW/6/Jv/QzXVi/gPm+Gf96l/h/VGbTo0aWRERSzsQFA6kk4AptdD4H07+0vF9hEVykb+c/tsGRn8cfnXBFNtJdT7atUVOnKpLZI920mxXTNJtLJOkESx59SABmodY1/TNAijl1K58lJDtTCM2Tj0AJrTA4rxz4tah5+u2liD8tvEXP1Y9PyUV6s5ezhdH5rg6Dx2LUJv4m7tHdf8LI8Kf8AQTP/AIDyf/E0f8LH8KE/8hM/+A8n/wATXglFcf1ufY+o/wBV8P8Azv8AD/I+owQ4yDkHkGvLfi/p/wA2nakq9d0Dn/x5f/Zq7fwffnU/CmnXJbL+SEc+rL8p/UGqnxA07+0PB16oGZIVEy+23k/pkfjXXUXPT+R81g5vB4+N/su36MwvhB/yBL//AK+f/ZRXojfcP0Ned/CD/kCX/wD18/8Asor0UjIxSofw0VnX+/VP66I+Xrj/AI+Jf98/zqOvXn+EVi8jOdTuMsSfuL3pv/Cn7D/oKXP/AHwtcbw9S+x9bTz3Axgk5/g/8jyOvXfhDIp0jUY/4lnDEexUf4Un/CoLD/oKXP8A3wtRaJDb+BfHS6P9qaS31C3U75MDEm5to/HBH1Iq6VKdOalJaHJmOY4bG4aVChK8t7WfTXt2uemHkHHpXzVrdo9hrl9aupDRzuvPpk4/MYP419LiuL8W+ALXxJc/bYpza3mNrPt3BwOBkZHbjOfzroxFNzjpueFkmPhg679rpFr/AIY8Or2T4TWbw+HLm5dcLcXB2n1CgD+efyrKs/hA/nqbzVVMOeVhiO4j0BJ4/I16XYWUGm2MNnaxhIYVCqo7CsMPRlGfNJHr55muHrYf2NGV27fcWm+6fpXzHfyLNqN1KpyrzMwPqCSa978a62mheHLmfeBNIpihGeS5HH5cn8K+fKeMa0RHC9F3qVWtNEe0fCL/AJFS6/6/n/8AQI676uB+EX/IqXX/AF/P/wCgR131bYf+Ejyc+/5GFT5f+ko+Wa9E+Fmq2GmPqpvry3tvMEWzzpVTdjfnGevUV53RXnU5cklLsfd47C/WsPKje1+vzPow+KvD+D/xOtP/APAlP8a8D12WOfxDqcsTq8cl1KyspBDAuSDxxgjnNZ9FbVcR7RWtY83K8l+o1XU573Vtv+CFd/8AC+40zT72+vtQvba3cIsUQllVCQTljg49FrgKKypzUJKTV7Hp4zDvEUJUU7X6n0b/AMJV4f6/21p//gSn+NeF+K9RXVfFGo3aMGjaXajA5BVcKD9DgH8axqK1rYj2kbWseXlmSLA1XVc76W2CiiiuY949U+GXiOxs9FuLK/voLcxzbo/OkVMggZAyRnkE/jXazeJPDs0DxPrOnMjqVINynT86+dqK66eK5IqLVz5vG8PLE15VlUtfpb/gnq/w61PS9FtNTtrrU7SPbdsEMkyrvUAAMCTyOOtdsfFPh/I/4nen/wDgSn+NfOVFOGK5Y2sRiuHXiKrqupq/Lyt3Po3/AISvw/8A9BrT/wDwJT/Gj/hK/D//AEGtP/8AAlP8a+cqKr655HP/AKrf9Pfw/wCCfR3/AAlXh/8A6DWn/wDgSn+NeSfEvULXUPE8E9ldRXEYtVXfDIGAYMxxkex/lXGUVFTE88eW1jswGQLC141ue9r6W7/M9Q8KfE5IoUs9eL/LhVu1BbI7bwOc+4zn9a9Fsta0zUUDWd/bzD/YkBIr5qoohipJWkrk4zhyjVlz0Zct+lro+oJJ4YU3SSogHdmxXM6z8QNC0iNgt0t1OBxFbkNk+5HA/E14LRVPGaaI56XC6Uk6lS68lY2PEfiS98S6h9puztRARFCp+WMH09SeMnv7AYGPRRXJKTk7s+noYenQpqnSVkj2j4Rf8ipdf9fz/wDoEdd9XA/CL/kVLr/r+f8A9Ajrvq9LDfwkfn+ff8jCp8v/AElHA/8ACotA/wCfzUv+/sf/AMRR/wAKi0D/AJ/NS/7+x/8AxFd9RR9Wpdg/t7MP+fn4R/yOB/4VFoH/AD+al/39j/8AiKP+FRaB/wA/mpf9/Y//AIiu+oo+r0uwf29mH/Pz8I/5HA/8Ki0D/n81L/v7H/8AEUf8Ki0D/n81L/v7H/8AEV31FH1el2D+3sw/5+fhH/I4H/hUWgf8/mpf9/Y//iKP+FRaB/z+al/39j/+IrvqKPq1LsH9vZh/z8/CP+RwP/CotA/5/NS/7+x//EUf8Ki0D/n81L/v7H/8RXfUUfVqXYP7ezD/AJ+fhH/I4H/hUWgf8/mpf9/Y/wD4ij/hUWgf8/mpf9/Y/wD4iu+oo+r0uwf29mH/AD8/CP8AkcD/AMKi0D/n81L/AL+x/wDxFH/CotA/5/NS/wC/sf8A8RXfUUfV6XYP7ezD/n5+Ef8AI4H/AIVFoH/P5qX/AH9j/wDiKP8AhUWgf8/mpf8Af2P/AOIrvqKPq1LsH9vZh/z8/CP+RwP/AAqLQP8An81L/v7H/wDEUf8ACotA/wCfzUv+/sf/AMRXfUUfV6XYP7ezD/n5+Ef8jgf+FRaB/wA/mpf9/Y//AIij/hUWgf8AP5qX/f2P/wCIrvqKPq9LsH9vZh/z8/CP+RwP/CotA/5/NS/7+x//ABFH/CotA/5/NS/7+x//ABFd9RR9Xpdg/t7MP+fn4R/yOB/4VFoH/P5qX/f2P/4ij/hUWgf8/mpf9/Y//iK76ij6tS7B/b2Yf8/Pwj/kZHhzw5Z+GNPksrKSeSN5TKTMwJyQB2A4+UVr0UVrGKirI86vXqYio6tV3k/+G6H/2Q==";
 document.getElementById("logoImg").src=LOGO;
 document.getElementById("authLogo").src=LOGO;
+document.getElementById("resetLogo").src=LOGO;
 
 // ---- Supabase (shared "Whatsapp <> Slack Bridge" project; Falu objects are namespaced) ----
 const SUPABASE_URL="https://xasehavpvasplrhvwyuu.supabase.co";
@@ -706,28 +727,95 @@ function toast(msg,type){
 const authGate=document.getElementById("authGate");
 const authBtn=document.getElementById("authBtn");
 const authErr=document.getElementById("authErr");
+function establishSession(access,refresh,user){
+  const isAdmin=!!(user&&user.app_metadata&&user.app_metadata.role==="admin");
+  session={token:access,refresh:refresh,userId:user.id,email:user.email,isAdmin};
+  document.getElementById("authPass").value="";
+  authGate.style.display="none";
+  document.getElementById("resetGate").style.display="none";
+  document.getElementById("btnUsers").style.display=isAdmin?"":"none";
+  updateAuthStatus();
+}
+async function fetchUser(token){
+  const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+token}});
+  const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Benutzerabruf fehlgeschlagen."); return j;
+}
 async function doLogin(){
   const email=document.getElementById("authEmail").value.trim();
   const pass=document.getElementById("authPass").value;
-  if(!email||!pass){authErr.textContent="Bitte E-Mail und Passwort eingeben. · Enter email and password.";return;}
-  authBtn.disabled=true; authErr.textContent="";
+  if(!email||!pass){authErr.className="err";authErr.textContent="Bitte E-Mail und Passwort eingeben. · Enter email and password.";return;}
+  authBtn.disabled=true; authErr.className="err"; authErr.textContent="";
   try{
     const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
       method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
       body:JSON.stringify({email,password:pass})});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error_description||j.msg||j.error||"Anmeldung fehlgeschlagen.");
-    const isAdmin=!!(j.user&&j.user.app_metadata&&j.user.app_metadata.role==="admin");
-    session={token:j.access_token,refresh:j.refresh_token,userId:j.user.id,email:j.user.email,isAdmin};
-    document.getElementById("authPass").value="";
-    authGate.style.display="none";
-    document.getElementById("btnUsers").style.display=isAdmin?"":"none";
-    updateAuthStatus();
+    establishSession(j.access_token,j.refresh_token,j.user);
   }catch(e){authErr.textContent=e.message;}
   finally{authBtn.disabled=false;}
 }
 authBtn.addEventListener("click",doLogin);
 document.getElementById("authPass").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+
+/* ---------- password reset ---------- */
+let recoveryTokens=null;
+async function requestReset(){
+  const email=document.getElementById("authEmail").value.trim();
+  if(!email){authErr.className="err";authErr.textContent="Bitte zuerst E-Mail eingeben. · Enter your email first.";return;}
+  const fb=document.getElementById("authForgot"); fb.disabled=true;
+  try{
+    const redirect=location.origin+location.pathname;
+    const r=await fetch(SUPABASE_URL+"/auth/v1/recover?redirect_to="+encodeURIComponent(redirect),
+      {method:"POST",headers:{"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json"},body:JSON.stringify({email})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.msg||j.error_description||("Fehler "+r.status));}
+    authErr.className="err ok";
+    authErr.textContent="E-Mail zum Zurücksetzen gesendet (falls Konto vorhanden). · Reset email sent if the account exists.";
+  }catch(e){authErr.className="err";authErr.textContent=e.message;}
+  finally{fb.disabled=false;}
+}
+document.getElementById("authForgot").addEventListener("click",requestReset);
+
+async function doReset(){
+  const p1=document.getElementById("resetPass1").value;
+  const p2=document.getElementById("resetPass2").value;
+  const err=document.getElementById("resetErr");
+  if(!p1||p1.length<6){err.textContent="Passwort min. 6 Zeichen. · Min. 6 characters.";return;}
+  if(p1!==p2){err.textContent="Passwörter stimmen nicht überein. · Passwords do not match.";return;}
+  if(!recoveryTokens){err.textContent="Kein gültiger Link. · Invalid link.";return;}
+  const btn=document.getElementById("resetBtn"); btn.disabled=true; err.textContent="";
+  try{
+    const r=await fetch(SUPABASE_URL+"/auth/v1/user",{method:"PUT",
+      headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+recoveryTokens.access,"Content-Type":"application/json"},
+      body:JSON.stringify({password:p1})});
+    const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Aktualisierung fehlgeschlagen.");
+    const user=await fetchUser(recoveryTokens.access);
+    establishSession(recoveryTokens.access,recoveryTokens.refresh,user);
+    recoveryTokens=null;
+    document.getElementById("resetPass1").value=""; document.getElementById("resetPass2").value="";
+    toast("Passwort geändert ✓ · Password updated","ok");
+  }catch(e){err.textContent=e.message;}
+  finally{btn.disabled=false;}
+}
+document.getElementById("resetBtn").addEventListener("click",doReset);
+document.getElementById("resetPass2").addEventListener("keydown",e=>{if(e.key==="Enter")doReset();});
+function handleRecoveryHash(){
+  const hash=location.hash?location.hash.slice(1):"";
+  if(!hash) return;
+  const p=new URLSearchParams(hash);
+  if(p.get("error")||p.get("error_description")){
+    authErr.className="err";
+    authErr.textContent=decodeURIComponent((p.get("error_description")||p.get("error")||"").replace(/\+/g," "));
+    history.replaceState(null,"",location.pathname+location.search);
+    return;
+  }
+  if(p.get("type")==="recovery"&&p.get("access_token")){
+    recoveryTokens={access:p.get("access_token"),refresh:p.get("refresh_token")};
+    history.replaceState(null,"",location.pathname+location.search);
+    authGate.style.display="none";
+    document.getElementById("resetGate").style.display="flex";
+  }
+}
 
 function logout(){session=null;document.getElementById("btnUsers").style.display="none";
   reportsView.classList.remove("show");usersView.classList.remove("show");
@@ -1007,6 +1095,7 @@ document.getElementById("btnCreateUser").addEventListener("click",createUser);
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());
 addDefect();
+handleRecoveryHash();
 </script>
 </body>
 </html>
