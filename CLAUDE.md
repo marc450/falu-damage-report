@@ -18,14 +18,17 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   and the separate "Senden" button were removed. Report draft state is still
   in-memory (a reload loses an unsaved draft) — only the auth session persists.
 - `localStorage` is used ONLY to persist the auth session: `falu_session` holds
-  the Supabase refresh token so a reload stays signed in (`saveSession`,
-  `restoreSession`, cleared on logout). Do not store report/patient-like data
-  there. (Storing the refresh token is an accepted XSS tradeoff for staying
-  logged in; revisit if requirements change.)
+  the Supabase refresh token + the last access token + its `expiresAt`, so a
+  reload stays signed in (`saveSession`, `restoreSession`, cleared on logout).
+  On reload `restoreSession` uses the cached access token directly if still valid
+  (avoids consuming/rotating the refresh token every reload), else refreshes.
+  Do not store report/patient-like data there. (Storing tokens is an accepted
+  XSS tradeoff for staying logged in.)
 - Photos are read with FileReader and downscaled on a canvas (max 1280px long
   edge, JPEG q≈0.72) before being stored as data URLs. Keep this — it keeps
-  reports small. On Speichern, data-URL photos are converted to Blobs and
-  uploaded to Supabase Storage; the row stores their paths.
+  reports small. The file input has NO `capture` attribute, so phones offer
+  camera OR existing library. On Speichern, data-URL photos are converted to
+  Blobs and uploaded to Supabase Storage; the row stores their paths.
 - The PDF is produced by building a hidden `.print-doc` from state and calling
   `window.print()`. Screen UI is hidden in `@media print`; the print doc is
   hidden on screen. Keep this split.

@@ -427,7 +427,7 @@ const SB_TABLE="falu_reports";
 const SB_BUCKET="falu-report-photos";
 const SESSION_KEY="falu_session"; // persists the refresh token so reload keeps you signed in
 let session=null;
-function saveSession(){try{if(session&&session.refresh)localStorage.setItem(SESSION_KEY,JSON.stringify({refresh:session.refresh}));}catch(_){}}
+function saveSession(){try{if(session&&session.refresh)localStorage.setItem(SESSION_KEY,JSON.stringify({refresh:session.refresh,access:session.token,expiresAt:session.expiresAt||0}));}catch(_){}}
 function clearSavedSession(){try{localStorage.removeItem(SESSION_KEY);}catch(_){}}
 
 const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line2:"+41 55 225 51 51 · sales@falu.com"};
@@ -595,7 +595,7 @@ function renderDefect(d,index){
   });
   const add=document.createElement("label"); add.className="addphoto"; add.innerHTML=`+ Foto`;
   const fin=document.createElement("input"); fin.type="file"; fin.accept="image/*";
-  fin.setAttribute("capture","environment"); fin.multiple=true;
+  fin.multiple=true; // no "capture" → phone lets the user pick camera or library
   fin.addEventListener("change",async ()=>{
     const files=Array.from(fin.files||[]);
     for(const file of files){const url=await fileToDataURL(file); d.photos.push(url);}
@@ -735,9 +735,9 @@ function toast(msg,type){
 const authGate=document.getElementById("authGate");
 const authBtn=document.getElementById("authBtn");
 const authErr=document.getElementById("authErr");
-function establishSession(access,refresh,user){
+function establishSession(access,refresh,user,expiresAt){
   const isAdmin=!!(user&&user.app_metadata&&user.app_metadata.role==="admin");
-  session={token:access,refresh:refresh,userId:user.id,email:user.email,isAdmin};
+  session={token:access,refresh:refresh,userId:user.id,email:user.email,isAdmin,expiresAt:expiresAt||0};
   saveSession();
   document.getElementById("authPass").value="";
   authGate.style.display="none";
@@ -763,7 +763,7 @@ async function doLogin(){
       body:JSON.stringify({email,password:pass})});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error_description||j.msg||j.error||"Anmeldung fehlgeschlagen.");
-    establishSession(j.access_token,j.refresh_token,j.user);
+    establishSession(j.access_token,j.refresh_token,j.user,j.expires_at);
   }catch(e){authErr.textContent=e.message;}
   finally{authBtn.disabled=false;}
 }
@@ -835,14 +835,23 @@ async function restoreSession(){
   if(!saved||!saved.refresh) return false;
   authGate.style.display="none"; // avoid login flash while refreshing
   try{
+    // Fast path: cached access token still valid → use it directly (no refresh-token rotation)
+    if(saved.access&&saved.expiresAt&&(saved.expiresAt*1000)>(Date.now()+60000)){
+      try{
+        const user=await fetchUser(saved.access);
+        establishSession(saved.access,saved.refresh,user,saved.expiresAt);
+        return true;
+      }catch(_){ /* fall through to refresh */ }
+    }
     const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=refresh_token",{
       method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
       body:JSON.stringify({refresh_token:saved.refresh})});
     const j=await r.json();
-    if(!r.ok||!j.access_token) throw 0;
-    establishSession(j.access_token,j.refresh_token,j.user);
+    if(!r.ok||!j.access_token) throw new Error((j&&(j.error_description||j.msg||j.error))||("refresh "+r.status));
+    const user=j.user||await fetchUser(j.access_token);
+    establishSession(j.access_token,j.refresh_token,user,j.expires_at);
     return true;
-  }catch(_){ clearSavedSession(); authGate.style.display="flex"; return false; }
+  }catch(e){ console.warn("Session-Wiederherstellung fehlgeschlagen:",e&&e.message||e); clearSavedSession(); authGate.style.display="flex"; return false; }
 }
 
 function logout(){session=null; clearSavedSession();
@@ -864,7 +873,7 @@ async function refreshSession(){
     body:JSON.stringify({refresh_token:session.refresh})});
   const j=await r.json();
   if(!r.ok) throw new Error("SESSION_EXPIRED");
-  session.token=j.access_token; session.refresh=j.refresh_token; saveSession();
+  session.token=j.access_token; session.refresh=j.refresh_token; session.expiresAt=j.expires_at||0; saveSession();
 }
 async function authFetch(url,opts){
   opts=opts||{}; opts.headers=Object.assign({"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+session.token},opts.headers||{});
