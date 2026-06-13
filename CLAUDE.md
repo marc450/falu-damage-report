@@ -85,11 +85,16 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.
-- Admin user management (`#usersView`, button hidden for non-admins) calls the
-  **`falu-admin` Edge Function** (`supabase/functions/falu-admin/index.ts`),
-  which re-checks the caller is admin then uses the service-role key (server-side
-  only — never in the client) to list/create/delete users. Actions: list, create
-  (`email_confirm:true`, sets role), delete (cannot self-delete).
+- User names live in Supabase `user_metadata.name`. The **`falu-admin` Edge
+  Function** (`supabase/functions/falu-admin/index.ts`) actions: `names`
+  (any authenticated user — returns {name,email} for ALL users, powers the
+  technician dropdown), and admin-only `list`, `create` (sets name+role,
+  `email_confirm:true`), `rename` (set a user's name), `delete` (no self-delete).
+- The "Monteur(e) / Techniker" field is a `userselect` dropdown populated by
+  `loadProfiles()` (caches `PROFILES`, called after login + after create/rename/
+  delete) → `populateMonteurOptions()`. Shows name, or email if a user has no
+  name yet. Admin user list (`#usersView`) shows name + email and has Umbenennen
+  (via `modalPrompt`) / Löschen per row.
 - Failures surface as a toast telling the mechanic to try again later. A 401
   triggers one token refresh; if that fails the auth gate reappears.
 

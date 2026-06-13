@@ -40,20 +40,34 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: uErr } = await caller.auth.getUser(token);
     if (uErr || !user) return json({ error: "Ungültige Sitzung." }, 401);
-    const role = (user.app_metadata as Record<string, unknown> | undefined)?.role;
-    if (role !== "admin") return json({ error: "Nur Administrator:innen." }, 403);
 
     const admin = createClient(url, service);
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
+    // "names" is available to ANY authenticated user (powers the technician dropdown).
+    if (action === "names") {
+      const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      if (error) throw error;
+      return json({
+        names: data.users
+          .map((u) => ({ name: ((u.user_metadata as Record<string, string> | undefined)?.name) || "", email: u.email }))
+          .filter((u) => u.email),
+      });
+    }
+
+    // All remaining actions require an admin.
+    const role = (user.app_metadata as Record<string, unknown> | undefined)?.role;
+    if (role !== "admin") return json({ error: "Nur Administrator:innen." }, 403);
+
     if (action === "list") {
-      const { data, error } = await admin.auth.admin.listUsers();
+      const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 });
       if (error) throw error;
       return json({
         users: data.users.map((u) => ({
           id: u.id,
           email: u.email,
+          name: ((u.user_metadata as Record<string, string> | undefined)?.name) || "",
           role: (u.app_metadata as Record<string, unknown> | undefined)?.role || "user",
           created_at: u.created_at,
         })),
@@ -61,16 +75,25 @@ Deno.serve(async (req) => {
     }
 
     if (action === "create") {
-      const { email, password, makeAdmin } = body;
+      const { email, password, makeAdmin, name } = body;
       if (!email || !password) return json({ error: "E-Mail und Passwort erforderlich." }, 400);
       const { data, error } = await admin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
+        user_metadata: { name: name || "" },
         app_metadata: { role: makeAdmin ? "admin" : "user" },
       });
       if (error) throw error;
       return json({ user: { id: data.user.id, email: data.user.email } });
+    }
+
+    if (action === "rename") {
+      const { id, name } = body;
+      if (!id) return json({ error: "id erforderlich." }, 400);
+      const { error } = await admin.auth.admin.updateUserById(id, { user_metadata: { name: name || "" } });
+      if (error) throw error;
+      return json({ ok: true });
     }
 
     if (action === "delete") {

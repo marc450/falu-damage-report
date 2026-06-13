@@ -200,7 +200,10 @@
          display:none;align-items:center;justify-content:center;padding:24px}
   .modal.show{display:flex}
   .modal-card{background:var(--bg);border:1px solid var(--rule);max-width:400px;width:100%;padding:24px}
-  .modal-msg{font-size:15px;color:var(--ink);line-height:1.5;margin-bottom:22px}
+  .modal-msg{font-size:15px;color:var(--ink);line-height:1.5;margin-bottom:18px}
+  .modal-input{width:100%;font-size:16px;border:1px solid var(--rule);padding:11px;margin:0 0 18px;
+               font-family:var(--font-sans);min-width:0}
+  .modal-input:focus{outline:none;border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px}
   .modal-actions .btn{min-width:96px;justify-content:center}
 
@@ -248,6 +251,7 @@
   .urow .rl{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;
             color:var(--ink-muted);margin-top:2px}
   .urow.admin .rl{color:var(--falu-red)}
+  .urow-actions{display:flex;gap:6px;flex-shrink:0}
   .urow button{font-size:12px;padding:7px 10px;border:1px solid var(--rule);background:#fff;cursor:pointer;
                font-family:var(--font-sans);flex-shrink:0}
   .urow button:hover{border-color:var(--falu-red);color:var(--falu-red)}
@@ -382,7 +386,8 @@
     <div class="panel-body">
       <h2 class="page-title">Benutzer</h2>
       <div class="userform">
-        <label for="newEmail">Neue:r Benutzer:in</label>
+        <label for="newName">Neue:r Benutzer:in</label>
+        <input type="text" id="newName" placeholder="Name" autocomplete="off">
         <input type="email" id="newEmail" placeholder="E-Mail" autocomplete="off" autocapitalize="none">
         <input type="password" id="newPass" placeholder="Passwort" autocomplete="new-password">
         <label class="chk"><input type="checkbox" id="newAdmin"> Administrator:in (Vollzugriff)</label>
@@ -425,6 +430,7 @@
 <div class="modal" id="modal">
   <div class="modal-card">
     <div class="modal-msg" id="modalMsg"></div>
+    <input class="modal-input" id="modalInput" style="display:none">
     <div class="modal-actions">
       <button class="btn btn--ghost" id="modalCancel">Abbrechen</button>
       <button class="btn btn--primary" id="modalOk">OK</button>
@@ -459,7 +465,7 @@ const META=[
   ["kunde","Kunde","Customer","text"],
   ["standort","Standort","Site","text"],
   ["ibnDatum","Installations- / IBN-Datum","Commissioning date","date"],
-  ["monteur","Monteur(e) / Techniker","Technician(s)","text"]
+  ["monteur","Monteur(e) / Techniker","Technician(s)","userselect"]
 ];
 const SIGN=[
   ["satVerantwortlich","Verantwortliche:r Site Acceptance Test","Responsible for Site Acceptance Test","text"],
@@ -485,6 +491,7 @@ const SEV=[["safety","Sicherheitsrelevant","Safety-critical"],["func","Funktions
 let uid=1;
 const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[], reportId:null, reportEmail:null };
 const signedCache={}; // storage path -> signed display URL
+let PROFILES=[]; // [{name,email}] — all users, for the technician dropdown
 
 const metaGrid=document.getElementById("metaGrid");
 META.forEach(([key,de,en,type])=>{
@@ -495,6 +502,11 @@ META.forEach(([key,de,en,type])=>{
     inp=document.createElement("select");
     inp.innerHTML=`<option value="">— wählen / select —</option>`+
       MACHINES.map(m=>`<option value="${m}">${m}</option>`).join("");
+    if(state.header[key]) inp.value=state.header[key];
+    inp.addEventListener("change",()=>{state.header[key]=inp.value});
+  } else if(type==="userselect"){
+    inp=document.createElement("select");
+    inp.innerHTML=`<option value="">— wählen / select —</option>`; // options filled after login by populateMonteurOptions()
     if(state.header[key]) inp.value=state.header[key];
     inp.addEventListener("change",()=>{state.header[key]=inp.value});
   } else {
@@ -756,6 +768,7 @@ function modalConfirm(message,opts){
   return new Promise(resolve=>{
     const ov=document.getElementById("modal");
     const ok=document.getElementById("modalOk"), cancel=document.getElementById("modalCancel");
+    document.getElementById("modalInput").style.display="none";
     document.getElementById("modalMsg").textContent=message;
     ok.textContent=opts.okLabel||"OK";
     cancel.textContent=opts.cancelLabel||"Abbrechen";
@@ -776,6 +789,35 @@ function modalConfirm(message,opts){
     ok.focus();
   });
 }
+function modalPrompt(message,opts){
+  opts=opts||{};
+  return new Promise(resolve=>{
+    const ov=document.getElementById("modal");
+    const ok=document.getElementById("modalOk"), cancel=document.getElementById("modalCancel");
+    const input=document.getElementById("modalInput");
+    document.getElementById("modalMsg").textContent=message;
+    input.style.display=""; input.value=opts.value||""; input.placeholder=opts.placeholder||"";
+    ok.textContent=opts.okLabel||"OK"; cancel.textContent=opts.cancelLabel||"Abbrechen";
+    ok.className="btn btn--navy";
+    ov.classList.add("show");
+    function cleanup(val){
+      ov.classList.remove("show"); input.style.display="none";
+      ok.removeEventListener("click",onOk); cancel.removeEventListener("click",onCancel);
+      ov.removeEventListener("click",onBackdrop); document.removeEventListener("keydown",onKey);
+      input.removeEventListener("keydown",onInputKey);
+      resolve(val);
+    }
+    function onOk(){cleanup(input.value.trim());}
+    function onCancel(){cleanup(null);}
+    function onBackdrop(e){if(e.target===ov)cleanup(null);}
+    function onKey(e){if(e.key==="Escape")cleanup(null);}
+    function onInputKey(e){if(e.key==="Enter"){e.preventDefault();cleanup(input.value.trim());}}
+    ok.addEventListener("click",onOk); cancel.addEventListener("click",onCancel);
+    ov.addEventListener("click",onBackdrop); document.addEventListener("keydown",onKey);
+    input.addEventListener("keydown",onInputKey);
+    input.focus(); input.select();
+  });
+}
 
 /* ---------- auth ---------- */
 const authGate=document.getElementById("authGate");
@@ -791,6 +833,7 @@ function establishSession(access,refresh,user,expiresAt){
   document.getElementById("btnUsers").style.display=isAdmin?"":"none";
   document.getElementById("btnUsers2").style.display=isAdmin?"":"none";
   updateAuthStatus();
+  loadProfiles(); // fill the technician dropdown
   // land on the requested route (deep link) or the reports overview
   navigate((location.hash&&location.hash.indexOf("#/")===0)?location.hash:"#/reports");
 }
@@ -1146,6 +1189,23 @@ async function callAdmin(action,payload){
   if(!r.ok) throw new Error(j.error||("Fehler "+r.status));
   return j;
 }
+function monteurDisplay(p){return p.name||p.email;}
+async function loadProfiles(){
+  try{const j=await callAdmin("names"); PROFILES=(j.names||[]).filter(p=>p.email);}catch(_){PROFILES=[];}
+  PROFILES.sort((a,b)=>monteurDisplay(a).localeCompare(monteurDisplay(b)));
+  populateMonteurOptions();
+}
+function populateMonteurOptions(){
+  const sel=[...metaGrid.querySelectorAll("select")].find(s=>s._key==="monteur");
+  if(!sel) return;
+  const cur=state.header.monteur||"";
+  sel.innerHTML=`<option value="">— wählen / select —</option>`+
+    PROFILES.map(p=>{const v=monteurDisplay(p);return `<option value="${esc(v)}">${esc(v)}</option>`;}).join("");
+  if(cur&&!PROFILES.some(p=>monteurDisplay(p)===cur)){
+    const o=document.createElement("option"); o.value=cur; o.textContent=cur; sel.appendChild(o);
+  }
+  sel.value=cur;
+}
 async function loadUsers(){
   const listEl=document.getElementById("usersList");
   listEl.innerHTML="<p class='hint'>Laden…</p>";
@@ -1157,11 +1217,16 @@ async function loadUsers(){
       const isAdmin=u.role==="admin";
       const el=document.createElement("div"); el.className="urow"+(isAdmin?" admin":"");
       const left=document.createElement("div"); left.className="em";
-      left.innerHTML=esc(u.email||"—")+"<div class='rl'>"+(isAdmin?"Administrator:in":"Benutzer:in")+"</div>";
+      const sub=(u.name?esc(u.email)+" · ":"")+(isAdmin?"Administrator:in":"Benutzer:in");
+      left.innerHTML=esc(u.name||u.email||"—")+"<div class='rl'>"+sub+"</div>";
+      const actions=document.createElement("div"); actions.className="urow-actions";
+      const ren=document.createElement("button"); ren.textContent="Umbenennen";
+      ren.addEventListener("click",()=>renameUser(u.id,u.name||""));
       const del=document.createElement("button"); del.textContent="Löschen";
       if(u.id===session.userId){del.disabled=true;del.title="Sich selbst";}
       else del.addEventListener("click",()=>deleteUser(u.id,u.email));
-      el.appendChild(left); el.appendChild(del); listEl.appendChild(el);
+      actions.appendChild(ren); actions.appendChild(del);
+      el.appendChild(left); el.appendChild(actions); listEl.appendChild(el);
     });
     if(!users.length) listEl.innerHTML="<div class='empty'>Keine Benutzer.</div>";
   }catch(e){
@@ -1170,18 +1235,20 @@ async function loadUsers(){
   }
 }
 async function createUser(){
+  const name=document.getElementById("newName").value.trim();
   const email=document.getElementById("newEmail").value.trim();
   const pass=document.getElementById("newPass").value;
   const makeAdmin=document.getElementById("newAdmin").checked;
   if(!email||!pass){toast("E-Mail und Passwort erforderlich.","err");return;}
   const btn=document.getElementById("btnCreateUser"); btn.disabled=true;
   try{
-    await callAdmin("create",{email,password:pass,makeAdmin});
+    await callAdmin("create",{email,password:pass,makeAdmin,name});
+    document.getElementById("newName").value="";
     document.getElementById("newEmail").value="";
     document.getElementById("newPass").value="";
     document.getElementById("newAdmin").checked=false;
     toast("Benutzer:in angelegt ✓","ok");
-    loadUsers();
+    loadUsers(); loadProfiles();
   }catch(e){
     if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";}
     else toast("Anlegen fehlgeschlagen: "+e.message,"err");
@@ -1189,8 +1256,14 @@ async function createUser(){
 }
 async function deleteUser(id,email){
   if(!await modalConfirm("Benutzer:in „"+email+"\" löschen?",{okLabel:"Löschen",danger:true})) return;
-  try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht","ok"); loadUsers(); }
+  try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht","ok"); loadUsers(); loadProfiles(); }
   catch(e){ toast("Löschen fehlgeschlagen: "+e.message,"err"); }
+}
+async function renameUser(id,current){
+  const name=await modalPrompt("Name der Benutzer:in",{value:current,placeholder:"Name",okLabel:"Speichern"});
+  if(name===null) return;
+  try{ await callAdmin("rename",{id,name}); toast("Name gespeichert ✓","ok"); loadUsers(); loadProfiles(); }
+  catch(e){ toast("Fehler: "+e.message,"err"); }
 }
 document.getElementById("btnUsers").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnUsers2").addEventListener("click",()=>navigate("#/users"));
