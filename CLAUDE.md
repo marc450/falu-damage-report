@@ -31,8 +31,8 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   user admin, toasts, dialogs). **Customer-facing content stays bilingual**
   (German primary, English secondary): the report-creation form fields/section
   labels and the printed PDF — because the customer/SAT sees that output.
-  EXCEPTION: the authentication screens (`#authGate` login + `#resetGate` reset)
-  and their messages are English-only, per request.
+  The authentication screens (`#authGate` login + `#resetGate` reset) are German
+  too (logo-only header, no heading on login).
 - Navigation is hash-routed (`router()` on `hashchange`): `#/reports` (overview,
   default landing), `#/new` (blank form), `#/report/<id>` (load+edit a report),
   `#/users` (admin). `navigate(h)` sets the hash (or calls `router()` if

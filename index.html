@@ -393,30 +393,28 @@
 
 <div class="auth" id="authGate">
   <div class="auth-card">
-    <div class="auth-lock"><img id="authLogo" alt="Falu"><div><strong>FALU</strong><span>Sign in</span></div></div>
-    <h2>Sign in</h2>
-    <div class="sub">Use your FALU account</div>
-    <label for="authEmail">Email</label>
+    <div class="auth-lock"><img id="authLogo" alt="Falu"></div>
+    <label for="authEmail">E-Mail</label>
     <input type="email" id="authEmail" autocomplete="username" inputmode="email" autocapitalize="none">
-    <label for="authPass">Password</label>
+    <label for="authPass">Passwort</label>
     <input type="password" id="authPass" autocomplete="current-password">
     <div class="err" id="authErr"></div>
-    <button id="authBtn">Sign in</button>
-    <button id="authForgot" class="linklike">Forgot password?</button>
+    <button id="authBtn">Anmelden</button>
+    <button id="authForgot" class="linklike">Passwort vergessen?</button>
   </div>
 </div>
 
 <div class="auth" id="resetGate" style="display:none">
   <div class="auth-card">
-    <div class="auth-lock"><img id="resetLogo" alt="Falu"><div><strong>FALU</strong><span>Password</span></div></div>
-    <h2>New password</h2>
-    <div class="sub">Set a new password</div>
-    <label for="resetPass1">New password</label>
+    <div class="auth-lock"><img id="resetLogo" alt="Falu"></div>
+    <h2>Neues Passwort</h2>
+    <div class="sub">Neues Passwort setzen</div>
+    <label for="resetPass1">Neues Passwort</label>
     <input type="password" id="resetPass1" autocomplete="new-password">
-    <label for="resetPass2">Repeat</label>
+    <label for="resetPass2">Wiederholen</label>
     <input type="password" id="resetPass2" autocomplete="new-password">
     <div class="err" id="resetErr"></div>
-    <button id="resetBtn">Save</button>
+    <button id="resetBtn">Speichern</button>
   </div>
 </div>
 
@@ -760,19 +758,19 @@ function establishSession(access,refresh,user){
 }
 async function fetchUser(token){
   const r=await fetch(SUPABASE_URL+"/auth/v1/user",{headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+token}});
-  const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Could not load user."); return j;
+  const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Benutzer konnte nicht geladen werden."); return j;
 }
 async function doLogin(){
   const email=document.getElementById("authEmail").value.trim();
   const pass=document.getElementById("authPass").value;
-  if(!email||!pass){authErr.className="err";authErr.textContent="Enter email and password.";return;}
+  if(!email||!pass){authErr.className="err";authErr.textContent="Bitte E-Mail und Passwort eingeben.";return;}
   authBtn.disabled=true; authErr.className="err"; authErr.textContent="";
   try{
     const r=await fetch(SUPABASE_URL+"/auth/v1/token?grant_type=password",{
       method:"POST",headers:{"Content-Type":"application/json","apikey":SUPABASE_ANON_KEY},
       body:JSON.stringify({email,password:pass})});
     const j=await r.json();
-    if(!r.ok) throw new Error(j.error_description||j.msg||j.error||"Sign in failed.");
+    if(!r.ok) throw new Error(j.error_description||j.msg||j.error||"Anmeldung fehlgeschlagen.");
     establishSession(j.access_token,j.refresh_token,j.user);
   }catch(e){authErr.textContent=e.message;}
   finally{authBtn.disabled=false;}
@@ -784,7 +782,7 @@ document.getElementById("authPass").addEventListener("keydown",e=>{if(e.key==="E
 let recoveryTokens=null;
 async function requestReset(){
   const email=document.getElementById("authEmail").value.trim();
-  if(!email){authErr.className="err";authErr.textContent="Enter your email first.";return;}
+  if(!email){authErr.className="err";authErr.textContent="Bitte zuerst E-Mail eingeben.";return;}
   const fb=document.getElementById("authForgot"); fb.disabled=true;
   try{
     const redirect=location.origin+location.pathname;
@@ -792,7 +790,7 @@ async function requestReset(){
       {method:"POST",headers:{"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json"},body:JSON.stringify({email})});
     if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.msg||j.error_description||("Fehler "+r.status));}
     authErr.className="err ok";
-    authErr.textContent="Reset email sent if the account exists.";
+    authErr.textContent="E-Mail zum Zurücksetzen gesendet (falls Konto vorhanden).";
   }catch(e){authErr.className="err";authErr.textContent=e.message;}
   finally{fb.disabled=false;}
 }
@@ -802,20 +800,20 @@ async function doReset(){
   const p1=document.getElementById("resetPass1").value;
   const p2=document.getElementById("resetPass2").value;
   const err=document.getElementById("resetErr");
-  if(!p1||p1.length<6){err.textContent="Min. 6 characters.";return;}
-  if(p1!==p2){err.textContent="Passwords do not match.";return;}
-  if(!recoveryTokens){err.textContent="Invalid link.";return;}
+  if(!p1||p1.length<6){err.textContent="Mindestens 6 Zeichen.";return;}
+  if(p1!==p2){err.textContent="Passwörter stimmen nicht überein.";return;}
+  if(!recoveryTokens){err.textContent="Kein gültiger Link.";return;}
   const btn=document.getElementById("resetBtn"); btn.disabled=true; err.textContent="";
   try{
     const r=await fetch(SUPABASE_URL+"/auth/v1/user",{method:"PUT",
       headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+recoveryTokens.access,"Content-Type":"application/json"},
       body:JSON.stringify({password:p1})});
-    const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Update failed.");
+    const j=await r.json(); if(!r.ok) throw new Error(j.msg||j.error_description||"Aktualisierung fehlgeschlagen.");
     const user=await fetchUser(recoveryTokens.access);
     establishSession(recoveryTokens.access,recoveryTokens.refresh,user);
     recoveryTokens=null;
     document.getElementById("resetPass1").value=""; document.getElementById("resetPass2").value="";
-    toast("Password updated ✓","ok");
+    toast("Passwort geändert ✓","ok");
   }catch(e){err.textContent=e.message;}
   finally{btn.disabled=false;}
 }
