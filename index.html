@@ -1516,7 +1516,7 @@ async function loadUsers(){
       left.innerHTML=esc(u.name||u.email||"—")+"<div class='rl'>"+sub+"</div>";
       const actions=document.createElement("div"); actions.className="urow-actions";
       const ren=document.createElement("button"); ren.textContent="Umbenennen";
-      ren.addEventListener("click",()=>renameUser(u.id,u.name||""));
+      ren.addEventListener("click",()=>renameUser(u,left));
       const del=document.createElement("button"); del.textContent="Löschen";
       if(u.id===session.userId){del.disabled=true;del.title="Sich selbst";}
       else del.addEventListener("click",()=>deleteUser(u.id,u.email));
@@ -1554,11 +1554,18 @@ async function deleteUser(id,email){
   try{ await callAdmin("delete",{id}); toast("Benutzer:in gelöscht","ok"); loadUsers(); loadProfiles(); }
   catch(e){ toast("Löschen fehlgeschlagen: "+e.message,"err"); }
 }
-async function renameUser(id,current){
-  const name=await modalPrompt("Name der Benutzer:in",{value:current,placeholder:"Name",okLabel:"Speichern"});
+async function renameUser(u,leftEl){
+  const name=await modalPrompt("Name der Benutzer:in",{value:u.name||"",placeholder:"Name",okLabel:"Speichern"});
   if(name===null) return;
-  try{ await callAdmin("rename",{id,name}); toast("Name gespeichert ✓","ok"); loadUsers(); loadProfiles(); }
-  catch(e){ toast("Fehler: "+e.message,"err"); }
+  try{
+    await callAdmin("rename",{id:u.id,name});
+    u.name=name;
+    // update this row in place — avoids reloading the whole list (flicker + scroll jump)
+    const sub=(name?esc(u.email)+" · ":"")+((u.role==="admin")?"Administrator:in":"Benutzer:in");
+    leftEl.innerHTML=esc(name||u.email||"—")+"<div class='rl'>"+sub+"</div>";
+    toast("Name gespeichert ✓","ok");
+    loadProfiles();
+  }catch(e){ toast("Fehler: "+e.message,"err"); }
 }
 document.getElementById("btnUsers2").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnCreateUser").addEventListener("click",createUser);
