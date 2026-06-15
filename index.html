@@ -1506,7 +1506,12 @@ async function downloadPdf(){
     const {h2c,jsPDF}=await loadPdfLibs();
     await ensurePhotoDataUrls();
     buildPrint();
-    const canvas=await h2c(doc,{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:760});
+    // Higher scale = html2canvas places glyphs with more sub-pixel precision, so
+    // characters/words stop rounding into each other. Drop to 2 for very long
+    // docs to keep the canvas within phone memory limits.
+    const estH=doc.scrollHeight||doc.getBoundingClientRect().height||0;
+    const scale=estH>6500?2:3;
+    const canvas=await h2c(doc,{scale,useCORS:true,backgroundColor:"#ffffff",windowWidth:760});
     const pdf=new jsPDF("p","mm","a4");
     const pageW=pdf.internal.pageSize.getWidth();   // 210
     const pageH=pdf.internal.pageSize.getHeight();  // 297
