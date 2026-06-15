@@ -679,11 +679,47 @@ function fileToDataURL(file,maxEdge=1280,quality=0.72){
         const w=Math.round(img.width*scale),h=Math.round(img.height*scale);
         const c=document.createElement("canvas"); c.width=w; c.height=h;
         c.getContext("2d").drawImage(img,0,0,w,h);
-        try{resolve(c.toDataURL("image/jpeg",quality));}catch(err){resolve(e.target.result);}
+        try{trimBlackBorders(c.toDataURL("image/jpeg",quality)).then(resolve);}catch(err){resolve(e.target.result);}
       };
       img.onerror=()=>resolve(e.target.result); img.src=e.target.result;
     };
     reader.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+// Crop near-black letterbox borders that some source photos carry (e.g. a
+// landscape shot saved on a portrait black canvas). Returns the original if
+// there is nothing meaningful to trim or anything goes wrong.
+function trimBlackBorders(dataUrl){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const w=img.naturalWidth,h=img.naturalHeight;
+        if(!w||!h){resolve(dataUrl);return;}
+        const c=document.createElement("canvas"); c.width=w; c.height=h;
+        const ctx=c.getContext("2d"); ctx.drawImage(img,0,0);
+        const data=ctx.getImageData(0,0,w,h).data;
+        const T=24;                 // a pixel counts as "black" if R,G,B all ≤ T
+        const rowContent=(y)=>{let n=0;const b=y*w*4;const lim=w*0.01;
+          for(let x=0;x<w;x++){const i=b+x*4; if(data[i]>T||data[i+1]>T||data[i+2]>T){if(++n>lim)return true;}}
+          return false;};
+        const colContent=(x,y0,y1)=>{let n=0;const lim=(y1-y0)*0.01;
+          for(let y=y0;y<y1;y++){const i=(y*w+x)*4; if(data[i]>T||data[i+1]>T||data[i+2]>T){if(++n>lim)return true;}}
+          return false;};
+        let top=0,bottom=h-1,left=0,right=w-1;
+        while(top<bottom&&!rowContent(top)) top++;
+        while(bottom>top&&!rowContent(bottom)) bottom--;
+        while(left<right&&!colContent(left,top,bottom+1)) left++;
+        while(right>left&&!colContent(right,top,bottom+1)) right--;
+        const nw=right-left+1, nh=bottom-top+1;
+        if(nw<20||nh<20||(nw===w&&nh===h)){resolve(dataUrl);return;}
+        const oc=document.createElement("canvas"); oc.width=nw; oc.height=nh;
+        oc.getContext("2d").drawImage(c,left,top,nw,nh,0,0,nw,nh);
+        resolve(oc.toDataURL("image/jpeg",0.85));
+      }catch(_){resolve(dataUrl);}
+    };
+    img.onerror=()=>resolve(dataUrl);
+    img.src=dataUrl;
   });
 }
 
@@ -1453,7 +1489,7 @@ async function ensurePhotoDataUrls(){
         const url=signedCache[p]||await signPath(p);
         const resp=await fetch(url);
         const blob=await resp.blob();
-        signedCache[p]=await blobToDataUrl(blob);
+        signedCache[p]=await trimBlackBorders(await blobToDataUrl(blob));
       }catch(e){/* leave as-is; html2canvas will try useCORS */}
     }
   }
@@ -1480,6 +1516,22 @@ async function downloadPdf(){
     const blocks=[...doc.children].map(el=>{const r=el.getBoundingClientRect();
       return {el, eyebrow:el.classList.contains("p-eyebrow"),
         top:Math.round((r.top-rectDoc.top)*ratio), bottom:Math.round((r.bottom-rectDoc.top)*ratio)};});
+    // The block tops above are estimates (live DOM scaled to the canvas) and drift
+    // a little down a long doc. Correct them by snapping each cut to an actual
+    // all-white gap row in the rendered canvas — every defect card has a coloured
+    // left border, so no row *inside* a card is ever fully white; only the gaps are.
+    let pix=null; try{ pix=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data; }catch(_){}
+    const W=canvas.width;
+    const isWhiteRow=(yy)=>{const b=yy*W*4; for(let x=0;x<W;x+=4){const i=b+x*4; if(pix[i]<248||pix[i+1]<248||pix[i+2]<248) return false;} return true;};
+    const snap=(desired,lo)=>{ // nearest white row to `desired`, but never above `lo`
+      if(!pix||desired<=0||desired>=canvas.height) return desired;
+      const win=Math.round(ratio*16);
+      for(let off=0;off<=win;off++){
+        const up=desired-off; if(up>lo && isWhiteRow(up)) return up;
+        const dn=desired+off; if(dn<canvas.height && isWhiteRow(dn)) return dn;
+      }
+      return desired;
+    };
     let y=0, page=0;
     while(y<canvas.height){
       let end=Math.min(y+sliceHpx, canvas.height);
@@ -1493,6 +1545,7 @@ async function downloadPdf(){
           const prev=blocks[si-1];
           if(prev && prev.eyebrow && prev.top>y) end=prev.top;
         }
+        end=snap(end,y); // land the cut in a real white gap (fixes drift clipping)
         if(end<=y) end=Math.min(y+sliceHpx, canvas.height);
       }
       const sh=end-y;

@@ -35,6 +35,11 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   reports small. The file input has NO `capture` attribute, so phones offer
   camera OR existing library. On Speichern, data-URL photos are converted to
   Blobs and uploaded to Supabase Storage; the row stores their paths.
+- `trimBlackBorders(dataUrl)` crops near-black letterbox borders (some source
+  photos are saved on a black canvas). Applied to new uploads in `fileToDataURL`
+  (durable) and to already-stored photos in `ensurePhotoDataUrls` (so the PDF —
+  and the cached display thumb — come out trimmed). It returns the original if
+  there's nothing to trim or on any error.
 - AI text rewrite: each defect free-text field (`fieldEl`) has a "✨ EN" button
   that sends the field's current text to the **`falu-rewrite` Edge Function**
   (`supabase/functions/falu-rewrite/index.ts`) and replaces it with clear English
@@ -50,10 +55,17 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   (cdnjs, via `loadPdfLibs`), ensures defect photos are data URLs
   (`ensurePhotoDataUrls` — avoids cross-origin canvas taint), builds the hidden
   `.print-doc` (`buildPrint`), renders it to ONE canvas, then **slices that canvas
-  into A4 page-height chunks itself** (each placed at the top margin) and stamps
+  into ≤A4 page-height chunks itself** (each placed at the top margin) and stamps
   "Seite X / Y" per page. Do NOT use html2pdf.js's own pagination — its flow
   splitter mis-placed content (header pushed to page bottom, tables clipped); the
-  manual slice keeps every page top-anchored. The `.print-doc` is laid out at a
+  manual slice keeps every page top-anchored. **Slices break between blocks, not
+  mid-card:** it measures each top-level child's [top,bottom] (live DOM scaled to
+  the canvas), ends a page before a block that would straddle the boundary (and
+  keeps a `.p-eyebrow` with the block it introduces), then **snaps the cut to an
+  actual all-white gap row** in the canvas — defect cards have a coloured left
+  border so no in-card row is ever fully white; this corrects the live-DOM↔canvas
+  drift that otherwise clips a card header. A card taller than a full page still
+  splits as a last resort. Pages may end with white space — that's intended. The `.print-doc` is laid out at a
   fixed 760px width inside `.print-host` (`position:absolute;height:0;overflow:hidden`)
   so it's measurable but invisible on screen — do NOT position `.print-doc` itself
   (an absolute/fixed clone collapses the capture to 0 height). All `.p-*` styles
