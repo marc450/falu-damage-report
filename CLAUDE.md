@@ -141,6 +141,14 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
   delete) → `populateMonteurOptions()`. Shows name, or email if a user has no
   name yet. Admin user list (`#usersView`) shows name + email and has Umbenennen
   (via `modalPrompt`) / Löschen per row.
+- Machine list: the "Machine type" dropdown is backed by table `falu_machines`
+  (`{name,sort}`), loaded on login via `loadMachines()` → `populateMachineOptions()`
+  (rebuilds the `maschinentyp` select, preserving the current value). `MACHINES`
+  is now a mutable `let` whose hardcoded array is only a fallback if the table is
+  empty/unreachable. Admins manage it at `#/machines` (`#machinesView`, button in
+  the reports header, admin-gated) — `loadMachineAdmin`/`addMachine`/`deleteMachine`.
+  RLS (read = any authenticated, write = admin) + the seed live in
+  `supabase/machines.sql` — run it once in the SQL editor.
 - Failures surface as a toast telling the mechanic to try again later. A 401
   triggers one token refresh; if that fails the auth gate reappears.
 

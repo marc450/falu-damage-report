@@ -404,6 +404,7 @@
       </div>
       <div class="toolbtns">
         <button class="btn btn--primary" id="btnNewReport">+&nbsp;Neues Mängelprotokoll</button>
+        <button class="btn btn--ghost" id="btnMachines" style="display:none">Maschinen</button>
         <button class="btn btn--ghost" id="btnUsers2" style="display:none">Benutzer</button>
         <button class="btn btn--ghost" id="btnReportsLogout">Abmelden</button>
       </div>
@@ -436,6 +437,28 @@
         <button id="btnCreateUser">Anlegen</button>
       </div>
       <div id="usersList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="machinesView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <div class="lockup lockup--link" id="machinesHome" title="Zu allen Berichten">
+        <img class="applogo" alt="Falu">
+      </div>
+      <div class="toolbtns">
+        <button class="btn btn--ghost" id="btnMachinesLogout">Abmelden</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <h2 class="page-title">Maschinen</h2>
+      <div class="userform">
+        <label for="newMachine">Neue Maschinenbezeichnung</label>
+        <input type="text" id="newMachine" placeholder="z. B. RB-2" autocomplete="off">
+        <button id="btnAddMachine">Hinzufügen</button>
+      </div>
+      <div id="machinesList"></div>
     </div>
   </div>
 </div>
@@ -527,7 +550,10 @@ function clearSavedSession(){try{localStorage.removeItem(SESSION_KEY);}catch(_){
 
 const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line2:"+41 55 225 51 51 · sales@falu.com"};
 
-const MACHINES=["CB1","CT-200","CT-2000","CT-3000","SV-2X","BV-2M","ABS-2","RB-2","RB-30A","SQB-2A","BL-12","BL-16","WR-600","VP-2","WI","WI-2000"];
+// Default fallback list. The live list is loaded from Supabase (falu_machines)
+// on login and is editable by admins via #/machines.
+let MACHINES=["CB1","CT-200","CT-2000","CT-3000","SV-2X","BV-2M","ABS-2","RB-2","RB-30A","SQB-2A","BL-12","BL-16","WR-600","VP-2","WI","WI-2000"];
+let MACHINE_ROWS=[]; // [{id,name,sort}] — admin view rows
 const META=[
   ["datum","Report date","","date"],
   ["maschinentyp","Machine type","","select"],
@@ -917,9 +943,11 @@ function establishSession(access,refresh,user,expiresAt){
   authGate.style.display="none";
   document.getElementById("resetGate").style.display="none";
   document.getElementById("btnUsers2").style.display=isAdmin?"":"none";
+  document.getElementById("btnMachines").style.display=isAdmin?"":"none";
   updateAuthStatus();
   // names ready for the technician dropdown + report-list creator names
   loadProfiles().then(()=>{ if(reportsView.classList.contains("show")) openReports(); });
+  loadMachines(); // live machine list for the report dropdown
   // land on the requested route (deep link) or the reports overview
   navigate((location.hash&&location.hash.indexOf("#/")===0)?location.hash:"#/reports");
 }
@@ -1031,7 +1059,8 @@ async function restoreSession(){
 
 function logout(){session=null; clearSavedSession();
   document.getElementById("btnUsers2").style.display="none";
-  reportsView.classList.remove("show");usersView.classList.remove("show");
+  document.getElementById("btnMachines").style.display="none";
+  reportsView.classList.remove("show");usersView.classList.remove("show");machinesView.classList.remove("show");
   updateAuthStatus();authGate.style.display="flex";}
 function updateAuthStatus(){
   const el=document.getElementById("authStatus");
@@ -1171,11 +1200,13 @@ document.querySelector(".app").addEventListener("change",scheduleSave);
 /* ---------- routing + views ---------- */
 const reportsView=document.getElementById("reportsView");
 const usersView=document.getElementById("usersView");
+const machinesView=document.getElementById("machinesView");
 const viewReport=document.getElementById("viewReport");
 
 function showOnly(view){
   reportsView.classList.toggle("show",view==="reports");
   usersView.classList.toggle("show",view==="users");
+  machinesView.classList.toggle("show",view==="machines");
   viewReport.classList.toggle("show",view==="view");
 }
 function navigate(h){ if((location.hash||"")===h) router(); else location.hash=h; }
@@ -1186,6 +1217,10 @@ async function router(){
   if(h.indexOf("#/users")===0){
     if(!session.isAdmin){navigate("#/reports");return;}
     showOnly("users"); await loadUsers(); return;
+  }
+  if(h.indexOf("#/machines")===0){
+    if(!session.isAdmin){navigate("#/reports");return;}
+    showOnly("machines"); await loadMachineAdmin(); return;
   }
   if(h.indexOf("#/report/")===0){
     const rest=h.slice(9), editing=rest.endsWith("/edit");
@@ -1501,6 +1536,81 @@ function populateMonteurOptions(){
   }
   sel.value=cur;
 }
+/* ---------- machine list (admin-editable) ---------- */
+function populateMachineOptions(){
+  const sel=[...metaGrid.querySelectorAll("select")].find(s=>s._key==="maschinentyp");
+  if(!sel) return;
+  const cur=state.header.maschinentyp||sel.value||"";
+  sel.innerHTML=`<option value="">— select —</option>`+
+    MACHINES.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("");
+  if(cur&&!MACHINES.includes(cur)){const o=document.createElement("option");o.value=cur;o.textContent=cur;sel.appendChild(o);}
+  sel.value=cur;
+}
+async function loadMachines(){
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/falu_machines?select=id,name,sort&order=sort.asc,name.asc");
+    const rows=await r.json();
+    if(r.ok&&Array.isArray(rows)){ MACHINE_ROWS=rows; if(rows.length) MACHINES=rows.map(x=>x.name); }
+  }catch(_){ /* keep default list if the table is missing/unreachable */ }
+  populateMachineOptions();
+}
+async function loadMachineAdmin(){
+  const listEl=document.getElementById("machinesList");
+  listEl.innerHTML="<p class='hint'>Laden…</p>";
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/falu_machines?select=id,name,sort&order=sort.asc,name.asc");
+    const rows=await r.json();
+    if(!r.ok) throw new Error((rows&&rows.message)||("Fehler "+r.status));
+    MACHINE_ROWS=rows; if(rows.length) MACHINES=rows.map(x=>x.name);
+    populateMachineOptions();
+    renderMachineList(rows);
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+function renderMachineList(rows){
+  const listEl=document.getElementById("machinesList");
+  if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Maschinen. Füge oben welche hinzu.</div>";return;}
+  listEl.innerHTML="";
+  rows.forEach(m=>{
+    const el=document.createElement("div"); el.className="urow";
+    const left=document.createElement("div"); left.className="em"; left.textContent=m.name;
+    const act=document.createElement("div"); act.className="urow-actions";
+    const del=document.createElement("button"); del.textContent="Löschen";
+    del.addEventListener("click",()=>deleteMachine(m));
+    act.appendChild(del); el.appendChild(left); el.appendChild(act); listEl.appendChild(el);
+  });
+}
+async function addMachine(){
+  const inp=document.getElementById("newMachine");
+  const name=inp.value.trim();
+  if(!name){toast("Bezeichnung erforderlich.","err");return;}
+  if(MACHINE_ROWS.some(m=>(m.name||"").toLowerCase()===name.toLowerCase())){toast("Existiert bereits.","err");return;}
+  const btn=document.getElementById("btnAddMachine"); btn.disabled=true;
+  const sort=MACHINE_ROWS.reduce((mx,m)=>Math.max(mx,m.sort||0),0)+1;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/falu_machines",
+      {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify({name,sort})});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    inp.value=""; toast("Maschine hinzugefügt ✓","ok"); await loadMachineAdmin();
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";}
+    else toast("Hinzufügen fehlgeschlagen: "+e.message,"err");
+  }finally{btn.disabled=false;}
+}
+async function deleteMachine(m){
+  if(!await modalConfirm("Maschine „"+m.name+"\" löschen?",{okLabel:"Löschen",danger:true})) return;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/falu_machines?id=eq."+encodeURIComponent(m.id),
+      {method:"DELETE",headers:{"Prefer":"return=minimal"}});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    toast("Maschine gelöscht","ok"); await loadMachineAdmin();
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    toast("Löschen fehlgeschlagen: "+e.message,"err");
+  }
+}
 async function loadUsers(){
   const listEl=document.getElementById("usersList");
   listEl.innerHTML="<p class='hint'>Laden…</p>";
@@ -1569,6 +1679,11 @@ async function renameUser(u,leftEl){
 }
 document.getElementById("btnUsers2").addEventListener("click",()=>navigate("#/users"));
 document.getElementById("btnCreateUser").addEventListener("click",createUser);
+document.getElementById("btnMachines").addEventListener("click",()=>navigate("#/machines"));
+document.getElementById("machinesHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("btnMachinesLogout").addEventListener("click",logout);
+document.getElementById("btnAddMachine").addEventListener("click",addMachine);
+document.getElementById("newMachine").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMachine();}});
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());
 addDefect();
