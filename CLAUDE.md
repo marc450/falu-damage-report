@@ -121,6 +121,16 @@ logo (base64) live in `index.html`. Deployed via GitHub Pages
 - Roles: admin = `app_metadata.role === "admin"` in the JWT (`session.isAdmin`).
   RLS: SELECT/UPDATE/DELETE = own row OR admin (via an `is_admin()` SQL helper);
   INSERT = `created_by = auth.uid()`. Storage: own `{userId}/` folder, or admin.
+- Sharing: the report row has a `shared_with text[]` column (e-mails). The
+  read-only view has a **Teilen** button (`shareReport`) opening `#shareModal`, a
+  checkbox list of all members (from `PROFILES`, owner+self excluded) pre-checked
+  for current shares; Speichern PATCHes only `shared_with` (`saveShares`) — kept
+  out of the autosave body so edits don't clobber it. Shared members get
+  **view + edit** (not delete), and anyone with access may re-share. The overview
+  shows a "Geteilt"/"Mit mir geteilt" `.rep-tag` and hides Löschen for rows you
+  don't own. Extra RLS (additive permissive policies for shared SELECT/UPDATE on
+  `falu_reports`, plus a storage SELECT policy keyed on the path's `{reportId}`
+  segment) lives in `supabase/sharing.sql` — run it once in the SQL editor.
 - User names live in Supabase `user_metadata.name`. The **`falu-admin` Edge
   Function** (`supabase/functions/falu-admin/index.ts`) actions: `names`
   (any authenticated user — returns {name,email} for ALL users, powers the

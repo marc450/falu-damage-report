@@ -216,6 +216,17 @@
   .modal-input:focus{outline:none;border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
   .modal-actions{display:flex;justify-content:flex-end;gap:10px}
   .modal-actions .btn{min-width:96px;justify-content:center}
+  .share-list{max-height:46vh;overflow:auto;margin:0 0 18px;border:1px solid var(--rule)}
+  .share-row{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;
+             border-bottom:1px solid var(--rule-soft);font-size:14px;color:var(--ink)}
+  .share-row:last-child{border-bottom:none}
+  .share-row:hover{background:var(--bg-alt)}
+  .share-row input{width:16px;height:16px;accent-color:var(--navy);margin:0;flex:none}
+  .share-row .se{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--ink-muted)}
+  .share-empty{padding:14px;color:var(--ink-muted);font-size:13px}
+  .rep-tag{display:inline-block;font-family:var(--font-mono);font-size:9px;letter-spacing:0.06em;
+           text-transform:uppercase;color:var(--navy);border:1px solid var(--navy);
+           padding:1px 5px;margin-left:8px;vertical-align:middle}
 
   /* ---------- panels (reports overview / users) ---------- */
   .panel{position:fixed;inset:0;z-index:80;background:var(--bg-alt);overflow:auto;display:none}
@@ -436,6 +447,7 @@
       </div>
       <div class="toolbtns">
         <button class="btn btn--ghost" id="btnViewLink">Link kopieren</button>
+        <button class="btn btn--ghost" id="btnViewShare">Teilen</button>
         <button class="btn btn--ghost" id="btnViewEdit">Bearbeiten</button>
         <button class="btn btn--primary" id="btnViewPdf">PDF herunterladen</button>
       </div>
@@ -484,6 +496,17 @@
   </div>
 </div>
 
+<div class="modal" id="shareModal">
+  <div class="modal-card">
+    <div class="modal-msg">Bericht teilen mit</div>
+    <div class="share-list" id="shareList"></div>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" id="shareCancel">Abbrechen</button>
+      <button class="btn btn--navy" id="shareSave">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <div class="print-host"><div class="print-doc" id="printDoc"></div></div>
 
 <script>
@@ -503,7 +526,7 @@ function clearSavedSession(){try{localStorage.removeItem(SESSION_KEY);}catch(_){
 
 const ADDR={name:"FALU AG",line1:"Joweidzentrum 5, 8630 Rüti, Switzerland",line2:"+41 55 225 51 51 · sales@falu.com"};
 
-const MACHINES=["CB1","CT-200","CT-2000","CT-3000","SV-2X","BV-2M","ABS-2","RB-30A","SQB-2A","BL-12","BL-16","WR-600","WR-2100-S","VP-2","WI"];
+const MACHINES=["CB1","CT-200","CT-2000","CT-3000","SV-2X","BV-2M","ABS-2","RB-2","RB-30A","SQB-2A","BL-12","BL-16","WR-600","VP-2","WI","WI-2000"];
 const META=[
   ["datum","Report date","","date"],
   ["maschinentyp","Machine type","","select"],
@@ -535,7 +558,7 @@ const STATUS=[["offen","Open"],["arbeit","In progress"],["erledigt","Done"]];
 const SEV=[["safety","Safety-critical",""],["func","Functional",""],["minor","Minor / cosmetic",""]];
 
 let uid=1;
-const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[], reportId:null, reportEmail:null };
+const state={ header:{datum:new Date().toISOString().slice(0,10)}, defects:[], reportId:null, reportEmail:null, sharedWith:[] };
 const signedCache={}; // storage path -> signed display URL
 let PROFILES=[]; // [{name,email}] — all users, for the technician dropdown
 
@@ -1179,7 +1202,7 @@ window.addEventListener("hashchange",router);
 
 function newReport(){
   state.header={datum:new Date().toISOString().slice(0,10)};
-  state.defects=[]; state.reportId=null; state.reportEmail=null;
+  state.defects=[]; state.reportId=null; state.reportEmail=null; state.sharedWith=[];
   uid=1; dirty=false; setSaveStatus("idle"); syncHeaderInputs(); addDefect();
 }
 
@@ -1189,7 +1212,7 @@ async function openReports(){
   const listEl=document.getElementById("reportsList");
   listEl.innerHTML="<p class='hint'>Laden…</p>";
   try{
-    const sel="id,created_at,updated_at,datum,kunde,serien_nr,maschinentyp,defect_count,safety_count,created_by_email";
+    const sel="id,created_at,updated_at,datum,kunde,serien_nr,maschinentyp,defect_count,safety_count,created_by_email,shared_with";
     const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?select="+sel+"&order=created_at.desc");
     const rows=await r.json();
     if(!r.ok) throw new Error(rows.message||("Fehler "+r.status));
@@ -1211,12 +1234,20 @@ function renderReportList(rows){
     const title=(date||"—")+" · "+(row.kunde||"Ohne Kunde")+(creator?(" · "+creator):"");
     let meta=(row.serien_nr?(row.serien_nr+" · "):"")+(row.maschinentyp||"—")+" · "+(row.defect_count||0)+" Mängel";
     if(row.safety_count>0) meta+=" · "+row.safety_count+" sicherheitskritisch";
+    const me=(session.email||"").toLowerCase();
+    const sw=(row.shared_with||[]).map(e=>(e||"").toLowerCase());
+    const mine=(row.created_by_email||"").toLowerCase()===me;
+    let tag="";
+    if(mine&&sw.length) tag="Geteilt";
+    else if(sw.includes(me)) tag="Mit mir geteilt";
     const main=document.createElement("div"); main.className="rep-main";
-    main.innerHTML="<b>"+esc(title)+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
+    main.innerHTML="<b>"+esc(title)+(tag?(" <span class='rep-tag'>"+tag+"</span>"):"")+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
     const act=document.createElement("div"); act.className="rep-actions";
-    const db=document.createElement("button"); db.className="del"; db.textContent="Löschen";
-    db.addEventListener("click",(e)=>{e.stopPropagation();deleteReport(row.id);});
-    act.appendChild(db);
+    if(mine||session.isAdmin){
+      const db=document.createElement("button"); db.className="del"; db.textContent="Löschen";
+      db.addEventListener("click",(e)=>{e.stopPropagation();deleteReport(row.id);});
+      act.appendChild(db);
+    }
     el.appendChild(main); el.appendChild(act);
     el.addEventListener("click",()=>navigate("#/report/"+row.id));
     listEl.appendChild(el);
@@ -1236,6 +1267,7 @@ async function loadReportData(id){
     };
     state.defects=(data.defects||[]).map(d=>Object.assign({photos:[]},d,{photos:d.photos||[]}));
     state.reportId=row.id; state.reportEmail=row.created_by_email||null;
+    state.sharedWith=Array.isArray(row.shared_with)?row.shared_with:[];
     uid=Math.max(0,...state.defects.map(d=>d.id||0))+1;
     await resolveSignedUrls();
     return true;
@@ -1283,6 +1315,56 @@ async function copyReportLink(){
            document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); }
     toast("Link kopiert ✓","ok");
   }catch(e){ toast("Link konnte nicht kopiert werden.","err"); }
+}
+function shareReport(){
+  if(!state.reportId){toast("Bericht zuerst speichern.","err");return;}
+  const ov=document.getElementById("shareModal");
+  const listEl=document.getElementById("shareList");
+  const ok=document.getElementById("shareSave"), cancel=document.getElementById("shareCancel");
+  const me=(session.email||"").toLowerCase();
+  const owner=(state.reportEmail||session.email||"").toLowerCase();
+  const current=new Set((state.sharedWith||[]).map(e=>(e||"").toLowerCase()));
+  const members=PROFILES.filter(p=>p.email&&p.email.toLowerCase()!==me&&p.email.toLowerCase()!==owner);
+  if(!members.length){
+    listEl.innerHTML="<div class='share-empty'>Keine weiteren Benutzer:innen vorhanden.</div>";
+  }else{
+    listEl.innerHTML=members.map(p=>{
+      const checked=current.has(p.email.toLowerCase())?" checked":"";
+      const em=p.name?("<span class='se'>"+esc(p.email)+"</span>"):"";
+      return "<label class='share-row'><input type='checkbox' value='"+esc(p.email)+"'"+checked+"><span>"+esc(monteurDisplay(p))+"</span>"+em+"</label>";
+    }).join("");
+  }
+  ov.classList.add("show");
+  function cleanup(){
+    ov.classList.remove("show"); ok.disabled=false;
+    ok.removeEventListener("click",onOk); cancel.removeEventListener("click",onCancel);
+    ov.removeEventListener("click",onBack); document.removeEventListener("keydown",onKey);
+  }
+  async function onOk(){
+    const emails=[...listEl.querySelectorAll("input:checked")].map(i=>i.value);
+    ok.disabled=true;
+    const done=await saveShares(emails);
+    if(done) cleanup(); else ok.disabled=false;
+  }
+  function onCancel(){cleanup();}
+  function onBack(e){if(e.target===ov)cleanup();}
+  function onKey(e){if(e.key==="Escape")cleanup();}
+  ok.addEventListener("click",onOk); cancel.addEventListener("click",onCancel);
+  ov.addEventListener("click",onBack); document.addEventListener("keydown",onKey);
+}
+async function saveShares(emails){
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(state.reportId),
+      {method:"PATCH",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},
+       body:JSON.stringify({shared_with:emails})});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    state.sharedWith=emails;
+    toast(emails.length?("Geteilt mit "+emails.length+" Person(en) ✓"):"Freigabe aufgehoben ✓","ok");
+    return true;
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return false;}
+    toast("Teilen fehlgeschlagen: "+e.message,"err"); return false;
+  }
 }
 function loadScript(src){return new Promise((res,rej)=>{
   const s=document.createElement("script"); s.src=src;
@@ -1380,6 +1462,7 @@ document.getElementById("reportsHome").addEventListener("click",()=>navigate("#/
 document.getElementById("usersHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("viewHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("btnViewLink").addEventListener("click",copyReportLink);
+document.getElementById("btnViewShare").addEventListener("click",shareReport);
 document.getElementById("btnViewEdit").addEventListener("click",()=>{if(state.reportId)navigate("#/report/"+state.reportId+"/edit");});
 document.getElementById("btnViewPdf").addEventListener("click",downloadPdf);
 document.getElementById("btnNewReport").addEventListener("click",()=>navigate("#/new"));
