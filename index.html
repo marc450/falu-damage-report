@@ -1271,14 +1271,21 @@ function renderReportList(rows){
     let meta=(row.serien_nr?(row.serien_nr+" · "):"")+(row.maschinentyp||"—")+" · "+(row.defect_count||0)+" Mängel";
     if(row.safety_count>0) meta+=" · "+row.safety_count+" sicherheitskritisch";
     const me=(session.email||"").toLowerCase();
-    const sw=(row.shared_with||[]).map(e=>(e||"").toLowerCase());
     const mine=(row.created_by_email||"").toLowerCase()===me;
-    let tag="";
-    if(mine&&sw.length) tag="Geteilt";
-    else if(sw.includes(me)) tag="Mit mir geteilt";
     const main=document.createElement("div"); main.className="rep-main";
-    main.innerHTML="<b>"+esc(title)+(tag?(" <span class='rep-tag'>"+tag+"</span>"):"")+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
+    function renderTag(){
+      const sw=(row.shared_with||[]).map(e=>(e||"").toLowerCase());
+      let tag="";
+      if(mine&&sw.length) tag="Geteilt";
+      else if(sw.includes(me)) tag="Mit mir geteilt";
+      main.innerHTML="<b>"+esc(title)+(tag?(" <span class='rep-tag'>"+tag+"</span>"):"")+"</b><div class='rep-meta'>"+esc(meta)+"</div>";
+    }
+    renderTag();
     const act=document.createElement("div"); act.className="rep-actions";
+    const sh=document.createElement("button"); sh.className="open"; sh.textContent="Teilen";
+    sh.addEventListener("click",(e)=>{e.stopPropagation();
+      openShareDialog(row.id,row.created_by_email,row.shared_with||[],emails=>{row.shared_with=emails;renderTag();});});
+    act.appendChild(sh);
     if(mine||session.isAdmin){
       const db=document.createElement("button"); db.className="del"; db.textContent="Löschen";
       db.addEventListener("click",(e)=>{e.stopPropagation();deleteReport(row.id);});
@@ -1352,14 +1359,21 @@ async function copyReportLink(){
     toast("Link kopiert ✓","ok");
   }catch(e){ toast("Link konnte nicht kopiert werden.","err"); }
 }
+// Share dialog driven from the report view/form (uses current state).
 function shareReport(){
   if(!state.reportId){toast("Bericht zuerst speichern.","err");return;}
+  openShareDialog(state.reportId,state.reportEmail,state.sharedWith,emails=>{state.sharedWith=emails;});
+}
+// Reusable share picker — works from anywhere (view, form, or an overview card).
+// onSaved(emails) runs after a successful save so callers can update their own UI.
+function openShareDialog(reportId,ownerEmail,sharedWith,onSaved){
+  if(!reportId){toast("Bericht zuerst speichern.","err");return;}
   const ov=document.getElementById("shareModal");
   const listEl=document.getElementById("shareList");
   const ok=document.getElementById("shareSave"), cancel=document.getElementById("shareCancel");
   const me=(session.email||"").toLowerCase();
-  const owner=(state.reportEmail||session.email||"").toLowerCase();
-  const current=new Set((state.sharedWith||[]).map(e=>(e||"").toLowerCase()));
+  const owner=(ownerEmail||session.email||"").toLowerCase();
+  const current=new Set((sharedWith||[]).map(e=>(e||"").toLowerCase()));
   const members=PROFILES.filter(p=>p.email&&p.email.toLowerCase()!==me&&p.email.toLowerCase()!==owner);
   if(!members.length){
     listEl.innerHTML="<div class='share-empty'>Keine weiteren Benutzer:innen vorhanden.</div>";
@@ -1379,8 +1393,8 @@ function shareReport(){
   async function onOk(){
     const emails=[...listEl.querySelectorAll("input:checked")].map(i=>i.value);
     ok.disabled=true;
-    const done=await saveShares(emails);
-    if(done) cleanup(); else ok.disabled=false;
+    const done=await saveShares(reportId,emails);
+    if(done){ if(onSaved) onSaved(emails); cleanup(); } else ok.disabled=false;
   }
   function onCancel(){cleanup();}
   function onBack(e){if(e.target===ov)cleanup();}
@@ -1388,13 +1402,12 @@ function shareReport(){
   ok.addEventListener("click",onOk); cancel.addEventListener("click",onCancel);
   ov.addEventListener("click",onBack); document.addEventListener("keydown",onKey);
 }
-async function saveShares(emails){
+async function saveShares(reportId,emails){
   try{
-    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(state.reportId),
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TABLE+"?id=eq."+encodeURIComponent(reportId),
       {method:"PATCH",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},
        body:JSON.stringify({shared_with:emails})});
     if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
-    state.sharedWith=emails;
     toast(emails.length?("Geteilt mit "+emails.length+" Person(en) ✓"):"Freigabe aufgehoben ✓","ok");
     return true;
   }catch(e){
