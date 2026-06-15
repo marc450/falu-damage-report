@@ -1509,44 +1509,24 @@ async function downloadPdf(){
     const imgW=pageW-margin*2;                      // content width in mm
     const pxPerMM=canvas.width/imgW;                // canvas px per mm
     const sliceHpx=Math.floor((pageH-margin*2)*pxPerMM); // page content height in canvas px
-    // Map each top-level block (meta table, defect cards, summary, signatures) to
-    // canvas-px [top,bottom] so page cuts can avoid splitting a block mid-way.
-    const rectDoc=doc.getBoundingClientRect();
-    const ratio=rectDoc.height?canvas.height/rectDoc.height:2;
-    const blocks=[...doc.children].map(el=>{const r=el.getBoundingClientRect();
-      return {el, eyebrow:el.classList.contains("p-eyebrow"),
-        top:Math.round((r.top-rectDoc.top)*ratio), bottom:Math.round((r.bottom-rectDoc.top)*ratio)};});
-    // The block tops above are estimates (live DOM scaled to the canvas) and drift
-    // a little down a long doc. Correct them by snapping each cut to an actual
-    // all-white gap row in the rendered canvas — every defect card has a coloured
-    // left border, so no row *inside* a card is ever fully white; only the gaps are.
+    // Cut pages ONLY at all-white gap rows so a defect card / table is never split.
+    // Every card has a coloured left border, so no row *inside* a card is fully
+    // white — only the inter-block gaps are. Working straight from the rendered
+    // pixels avoids the live-DOM↔canvas drift that was clipping card headers.
+    // (Falls back to fixed-height slices if the canvas pixels can't be read.)
     let pix=null; try{ pix=canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data; }catch(_){}
-    const W=canvas.width;
+    const W=canvas.width, H=canvas.height;
     const isWhiteRow=(yy)=>{const b=yy*W*4; for(let x=0;x<W;x+=4){const i=b+x*4; if(pix[i]<248||pix[i+1]<248||pix[i+2]<248) return false;} return true;};
-    const snap=(desired,lo)=>{ // nearest white row to `desired`, but never above `lo`
-      if(!pix||desired<=0||desired>=canvas.height) return desired;
-      const win=Math.round(ratio*16);
-      for(let off=0;off<=win;off++){
-        const up=desired-off; if(up>lo && isWhiteRow(up)) return up;
-        const dn=desired+off; if(dn<canvas.height && isWhiteRow(dn)) return dn;
-      }
-      return desired;
-    };
     let y=0, page=0;
-    while(y<canvas.height){
-      let end=Math.min(y+sliceHpx, canvas.height);
-      if(end<canvas.height){
-        // a block crossing the page boundary: break before it (unless it's taller
-        // than a whole page and already starts at the top — then it must be split).
-        const si=blocks.findIndex(b=>b.top<end-1 && b.bottom>end+1);
-        if(si>=0 && blocks[si].top>y){
-          end=blocks[si].top;
-          // keep a section eyebrow with the block it introduces
-          const prev=blocks[si-1];
-          if(prev && prev.eyebrow && prev.top>y) end=prev.top;
-        }
-        end=snap(end,y); // land the cut in a real white gap (fixes drift clipping)
-        if(end<=y) end=Math.min(y+sliceHpx, canvas.height);
+    while(y<H){
+      let end=Math.min(y+sliceHpx, H);
+      if(pix && end<H){
+        // back up from the max page end to the lowest white gap that still fits
+        // (keeps the most content); if none fits, the card is taller than a page
+        // and we split it as a last resort.
+        let cut=-1;
+        for(let yy=end; yy>y+12; yy--){ if(isWhiteRow(yy)){ cut=yy; break; } }
+        if(cut>0) end=cut;
       }
       const sh=end-y;
       const pc=document.createElement("canvas"); pc.width=canvas.width; pc.height=sh;
