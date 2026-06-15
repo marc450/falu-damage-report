@@ -306,6 +306,11 @@
   /* ---------- PDF document (rendered to PDF client-side; clipped/hidden on screen) ---------- */
   .print-host{position:absolute;top:0;left:0;width:760px;height:0;overflow:hidden;z-index:-1;pointer-events:none}
   .print-doc{color:#222;font-size:10.5px;font-family:var(--font-sans);background:#fff}
+  /* html2canvas measures word advances without kerning/ligatures; if the browser
+     paints WITH them the widths drift and spaces between words get swallowed.
+     Force plain, non-kerned rendering for the captured doc so spacing is exact. */
+  .print-doc, .print-doc *{text-rendering:optimizeSpeed;font-kerning:none;
+    font-variant-ligatures:none;-webkit-font-feature-settings:"kern" 0;font-feature-settings:"kern" 0}
   .p-top{display:flex;align-items:flex-start;justify-content:space-between;
          border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:4px}
   .p-top-l{display:flex;gap:12px;align-items:center}
@@ -869,7 +874,7 @@ function buildPrint(){
   const total=d.length,safety=d.filter(x=>x.schweregrad==="safety").length;
   document.getElementById("printDoc").innerHTML=`
     <div class="p-top">
-      <div class="p-top-l"><img src="${LOGO}"><div class="m"><strong>FALU</strong><span>Defect Report</span></div></div>
+      <div class="p-top-l"><img src="${LOGO}"></div>
       <div class="p-addr"><b>${ADDR.name}</b><br>${ADDR.line1}<br>${ADDR.line2}</div>
     </div>
     <div class="p-title">Defect Report</div>
