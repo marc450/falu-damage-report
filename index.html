@@ -343,8 +343,10 @@
   .p-card table{width:100%;border-collapse:collapse}
   .p-card td{border-top:1px solid var(--rule-soft);padding:5px 9px;vertical-align:top}
   .p-card td.p-lab{width:23%}
-  .p-photos{display:flex;flex-wrap:wrap;gap:6px;padding:7px 9px}
-  .p-photos img{width:31%;max-height:150px;object-fit:cover;border:1px solid var(--rule)}
+  .p-photos{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;padding:7px 9px}
+  /* No object-fit: html2canvas (PDF) mis-renders it as black letterbox bars.
+     max-width/max-height with auto keeps each photo at its true aspect ratio. */
+  .p-photos img{max-width:32%;max-height:200px;width:auto;height:auto;border:1px solid var(--rule)}
   .p-sign{margin-top:18px;display:flex;gap:40px;page-break-inside:avoid}
   .p-sign-box{flex:1;display:flex;flex-direction:column}
   .p-sign-name{min-height:52px;font-size:11px;font-weight:600;color:var(--ink);padding:0 2px 3px}
