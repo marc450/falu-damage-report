@@ -1290,6 +1290,9 @@ function renderReportList(rows){
     }
     renderTag();
     const act=document.createElement("div"); act.className="rep-actions";
+    const pd=document.createElement("button"); pd.className="open"; pd.textContent="PDF";
+    pd.addEventListener("click",(e)=>{e.stopPropagation();downloadReportPdf(row.id);});
+    act.appendChild(pd);
     const sh=document.createElement("button"); sh.className="open"; sh.textContent="Teilen";
     sh.addEventListener("click",(e)=>{e.stopPropagation();
       openShareDialog(row.id,row.created_by_email,row.shared_with||[],emails=>{row.shared_with=emails;renderTag();});});
@@ -1489,6 +1492,13 @@ async function downloadPdf(){
   }catch(e){
     toast("PDF-Fehler: "+e.message,"err");
   }
+}
+// PDF from an overview card: load that report into state first, then render.
+async function downloadReportPdf(id){
+  toast("PDF wird vorbereitet…");
+  const ok=await loadReportData(id);
+  if(!ok) return;
+  await downloadPdf();
 }
 async function deleteReport(id){
   if(!await modalConfirm("Bericht endgültig löschen?",{okLabel:"Löschen",danger:true})) return;
