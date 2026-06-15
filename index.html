@@ -1473,15 +1473,35 @@ async function downloadPdf(){
     const imgW=pageW-margin*2;                      // content width in mm
     const pxPerMM=canvas.width/imgW;                // canvas px per mm
     const sliceHpx=Math.floor((pageH-margin*2)*pxPerMM); // page content height in canvas px
+    // Map each top-level block (meta table, defect cards, summary, signatures) to
+    // canvas-px [top,bottom] so page cuts can avoid splitting a block mid-way.
+    const rectDoc=doc.getBoundingClientRect();
+    const ratio=rectDoc.height?canvas.height/rectDoc.height:2;
+    const blocks=[...doc.children].map(el=>{const r=el.getBoundingClientRect();
+      return {el, eyebrow:el.classList.contains("p-eyebrow"),
+        top:Math.round((r.top-rectDoc.top)*ratio), bottom:Math.round((r.bottom-rectDoc.top)*ratio)};});
     let y=0, page=0;
     while(y<canvas.height){
-      const sh=Math.min(sliceHpx, canvas.height-y);
+      let end=Math.min(y+sliceHpx, canvas.height);
+      if(end<canvas.height){
+        // a block crossing the page boundary: break before it (unless it's taller
+        // than a whole page and already starts at the top — then it must be split).
+        const si=blocks.findIndex(b=>b.top<end-1 && b.bottom>end+1);
+        if(si>=0 && blocks[si].top>y){
+          end=blocks[si].top;
+          // keep a section eyebrow with the block it introduces
+          const prev=blocks[si-1];
+          if(prev && prev.eyebrow && prev.top>y) end=prev.top;
+        }
+        if(end<=y) end=Math.min(y+sliceHpx, canvas.height);
+      }
+      const sh=end-y;
       const pc=document.createElement("canvas"); pc.width=canvas.width; pc.height=sh;
       const cx=pc.getContext("2d"); cx.fillStyle="#ffffff"; cx.fillRect(0,0,pc.width,sh);
       cx.drawImage(canvas,0,y,canvas.width,sh,0,0,canvas.width,sh);
       if(page>0) pdf.addPage();
       pdf.addImage(pc.toDataURL("image/jpeg",0.92),"JPEG",margin,margin,imgW,sh/pxPerMM);
-      y+=sh; page++;
+      y=end; page++;
     }
     const n=pdf.internal.getNumberOfPages();
     for(let i=1;i<=n;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(140);
