@@ -1202,12 +1202,18 @@ const reportsView=document.getElementById("reportsView");
 const usersView=document.getElementById("usersView");
 const machinesView=document.getElementById("machinesView");
 const viewReport=document.getElementById("viewReport");
+const appEl=document.querySelector(".app");
 
 function showOnly(view){
   reportsView.classList.toggle("show",view==="reports");
   usersView.classList.toggle("show",view==="users");
   machinesView.classList.toggle("show",view==="machines");
   viewReport.classList.toggle("show",view==="view");
+  // Overlays are position:fixed; the base form (.app) underneath stays in flow
+  // and gives the body a phantom scrollbar that scrolls nothing visible.
+  // Hide the form while an overlay is open so only the panel's own scroll is active.
+  const overlay = view!=="form" && view!=="new";
+  appEl.style.display = overlay ? "none" : "";
 }
 function navigate(h){ if((location.hash||"")===h) router(); else location.hash=h; }
 async function router(){
