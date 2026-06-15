@@ -369,6 +369,7 @@
     </div>
     <div class="toolbtns">
       <span class="savestate" id="saveStatus"></span>
+      <button class="btn btn--ghost" id="btnFormShare">Teilen</button>
       <button class="btn btn--primary" id="btnPdf">PDF erstellen</button>
     </div>
   </div>
@@ -1463,6 +1464,7 @@ document.getElementById("usersHome").addEventListener("click",()=>navigate("#/re
 document.getElementById("viewHome").addEventListener("click",()=>navigate("#/reports"));
 document.getElementById("btnViewLink").addEventListener("click",copyReportLink);
 document.getElementById("btnViewShare").addEventListener("click",shareReport);
+document.getElementById("btnFormShare").addEventListener("click",async()=>{ await flushSave(); shareReport(); });
 document.getElementById("btnViewEdit").addEventListener("click",()=>{if(state.reportId)navigate("#/report/"+state.reportId+"/edit");});
 document.getElementById("btnViewPdf").addEventListener("click",downloadPdf);
 document.getElementById("btnNewReport").addEventListener("click",()=>navigate("#/new"));
