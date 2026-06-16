@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Falu · Bereitschafts-Checkliste</title>
+<style>
+  :root{
+    --falu-red:rgb(236,28,36);--navy:#002e5b;--ink:#222;--ink-soft:#555;--ink-muted:#8a8a8a;
+    --rule:#d8dde3;--rule-soft:#e9ecef;--bg:#fff;--bg-alt:#f5f6f8;
+    --font-sans:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+    --font-mono:"JetBrains Mono","IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--font-sans);color:var(--ink);background:var(--bg-alt);font-size:15px;
+       line-height:1.55;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;}
+  button,input,textarea{border-radius:0}
+  .app{max-width:680px;margin:0 auto;background:var(--bg);border-left:1px solid var(--rule);
+       border-right:1px solid var(--rule);min-height:100vh;padding:0 0 80px}
+  .topbar{border-bottom:1px solid var(--rule);padding:14px 24px;display:flex;align-items:center;gap:14px}
+  .lockup-meta strong{color:var(--navy);font-weight:600;font-size:15px;letter-spacing:-0.01em;display:block}
+  .lockup-meta span{font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+                    color:var(--ink-muted);margin-top:2px;display:block}
+  .wrap{padding:24px}
+  @media(max-width:560px){.topbar,.wrap{padding:14px 16px}}
+  .page-title{font-size:20px;font-weight:600;color:var(--navy);letter-spacing:-0.01em;margin:0 0 4px}
+  .page-sub{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.14em;
+            color:var(--ink-muted);margin-bottom:20px}
+  .meta-table{border:1px solid var(--rule);margin-bottom:24px}
+  .meta-row{display:flex;gap:12px;border-bottom:1px solid var(--rule-soft);padding:9px 13px}
+  .meta-row:last-child{border-bottom:none}
+  .meta-label{width:38%;flex-shrink:0;font-weight:600;font-size:13px;color:var(--navy)}
+  .meta-val{flex:1;font-size:14px;color:var(--ink)}
+  .items-label{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:0.16em;
+               color:var(--ink-muted);border-bottom:1px solid var(--navy);padding-bottom:4px;margin:0 0 16px}
+  .item{border:1px solid var(--rule);margin-bottom:12px}
+  .item-head{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;cursor:pointer;user-select:none}
+  .item-chk{width:22px;height:22px;border:2px solid var(--rule);flex-shrink:0;display:flex;
+            align-items:center;justify-content:center;margin-top:1px;transition:all 120ms}
+  .item-chk.done{background:var(--navy);border-color:var(--navy)}
+  .item-chk svg{display:none}
+  .item-chk.done svg{display:block}
+  .item-lbl{flex:1;font-size:14px;font-weight:500;color:var(--ink);line-height:1.4}
+  .item-req{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;
+            color:var(--ink-muted);flex-shrink:0;padding-top:3px}
+  .item-body{border-top:1px solid var(--rule-soft);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .item-body textarea{font-family:var(--font-sans);font-size:14px;color:var(--ink);border:1px solid var(--rule);
+                      padding:10px;width:100%;min-height:60px;resize:vertical;line-height:1.45;background:var(--bg)}
+  .item-body textarea:focus{outline:none;border-color:var(--navy);box-shadow:inset 0 0 0 1px var(--navy)}
+  .item-body textarea::placeholder{color:var(--ink-muted)}
+  .media-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+  .media-thumb{position:relative;width:80px;height:80px;border:1px solid var(--rule);overflow:hidden;background:#000;flex-shrink:0}
+  .media-thumb img,.media-thumb video{width:100%;height:100%;object-fit:cover;display:block}
+  .media-thumb .xbtn{position:absolute;top:0;right:0;width:22px;height:22px;background:var(--navy);
+                     color:#fff;font-size:14px;line-height:22px;text-align:center;cursor:pointer;border:none;padding:0;display:block}
+  .media-thumb .loading{display:flex;align-items:center;justify-content:center;width:100%;height:100%;
+                        font-family:var(--font-mono);font-size:9px;color:var(--ink-muted);background:var(--bg-alt);
+                        text-align:center;padding:4px;text-transform:uppercase;letter-spacing:0.06em}
+  .add-media-lbl{display:inline-flex;align-items:center;justify-content:center;
+                 border:1px dashed var(--navy);color:var(--navy);background:#fff;
+                 width:80px;height:80px;font-size:11px;font-weight:500;cursor:pointer;
+                 font-family:var(--font-sans);text-align:center;line-height:1.3;flex-shrink:0}
+  .add-media-lbl input{display:none}
+  .add-media-lbl.busy{opacity:.4;pointer-events:none}
+  .btn-submit{width:100%;background:var(--navy);color:#fff;border:none;padding:16px;font-size:15px;
+              font-weight:600;cursor:pointer;font-family:var(--font-sans);margin-top:24px;letter-spacing:-0.01em}
+  .btn-submit:hover{background:#00213f}
+  .btn-submit:disabled{opacity:.5;cursor:default}
+  .success{text-align:center;padding:60px 24px}
+  .success .icon{font-size:48px;margin-bottom:16px;color:var(--navy)}
+  .success h2{color:var(--navy);font-size:22px;font-weight:600;margin:0 0 8px}
+  .success p{color:var(--ink-soft);font-size:15px;margin:0}
+  .error-page{text-align:center;padding:60px 24px;color:var(--ink-soft)}
+  .error-page h2{color:var(--falu-red);font-size:20px;margin:0 0 8px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;background:var(--navy);
+         color:#fff;padding:12px 20px;font-size:13px;font-weight:500;max-width:90%;text-align:center;
+         display:none;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+  .toast.show{display:block}
+  .toast.err{background:var(--falu-red)}
+  .skel{height:16px;background:linear-gradient(90deg,var(--bg-alt) 25%,#e8eaed 50%,var(--bg-alt) 75%);
+        background-size:200% 100%;animation:sk 1.2s infinite;margin-bottom:10px}
+  @keyframes sk{0%{background-position:200%}100%{background-position:-200%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <img id="logoImg" style="width:44px;height:44px;display:block" alt="Falu">
+    <div class="lockup-meta">
+      <strong>FALU AG</strong>
+      <span>Bereitschafts-Checkliste</span>
+    </div>
+  </div>
+  <div class="wrap" id="main">
+    <div style="padding:20px 0">
+      <div class="skel" style="width:55%"></div>
+      <div class="skel" style="width:30%"></div>
+      <div class="skel" style="width:100%;margin-top:20px;height:60px"></div>
+      <div class="skel" style="width:100%;height:60px"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const LOGO="data:image/png;base64,/9j/4AAQSkZJRgABAgAAAQABAAD/wAARCADEAMQDACIAAREBAhEB/9sAQwAIBgYHBgUIBwcHCQkICgwUDQwLCwwZEhMPFB0aHx4dGhwcICQuJyAiLCMcHCg3KSwwMTQ0NB8nOT04MjwuMzQy/9sAQwEJCQkMCwwYDQ0YMiEcITIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMAAAERAhEAPwDmKKKK8Q/XAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAore0bw6t7aNqWo3Js9NVwgcKWeZ/wC4i9/r0Hvg40pLXw9EhV/D+urEOtwxwwHrjG2tFTbV9jkqY2lCbgk21vbp+l/Lc4+it7VvD8UFgNV0q6N5phbYzldrwsezjt2we/4jODUyi4uzNqNeFaPNB+vl6p6ntHwi/wCRUuv+v5//AECOu+rgfhF/yKl1/wBfz/8AoEdd9XpYb+Ej8/z7/kYVPl/6Sj5Zoooryz9FCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAO28QsbXxDoGlIcW1nHBsGOrMwJb8eM/SulvYPEEPii4vhrdvBpMM6tIslx8qJxkFexPQdOTXOM";
+document.getElementById("logoImg").src=LOGO;
+
+const SUPABASE_URL="https://xasehavpvasplrhvwyuu.supabase.co";
+const CL_FN=SUPABASE_URL+"/functions/v1/falu-checklist";
+const token=(new URLSearchParams(location.search)).get("token");
+const main=document.getElementById("main");
+
+let checklistData=null;
+let localItems=[];
+
+function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+let _tt=null;
+function toast(msg,type){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.className="toast show"+(type==="err"?" err":"");
+  if(_tt)clearTimeout(_tt);
+  _tt=setTimeout(()=>{t.className="toast";},6000);
+}
+
+async function load(){
+  if(!token){
+    main.innerHTML=`<div class="error-page"><h2>Ungültiger Link</h2><p>Bitte wende dich an FALU AG.</p></div>`;
+    return;
+  }
+  try{
+    const r=await fetch(CL_FN+"?token="+encodeURIComponent(token));
+    if(!r.ok) throw new Error(r.status===404?"Checkliste nicht gefunden.":"Serverfehler "+r.status);
+    checklistData=await r.json();
+    localItems=(checklistData.items||[]).map(i=>Object.assign({},i,{
+      checked:!!i.checked, note:i.note||"",
+      media:Array.isArray(i.media)?i.media.slice():[]
+    }));
+    if(checklistData.status==="submitted") renderSubmitted();
+    else renderForm();
+  }catch(e){
+    main.innerHTML=`<div class="error-page"><h2>Fehler</h2><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderSubmitted(){
+  main.innerHTML=`<div class="success">
+    <div class="icon">✓</div>
+    <h2>Bereits eingereicht</h2>
+    <p>Diese Checkliste wurde bereits ausgefüllt und an FALU AG übermittelt. Vielen Dank!</p>
+  </div>`;
+}
+
+function renderForm(){
+  const cl=checklistData;
+  let metaRows="";
+  if(cl.customer_name) metaRows+=`<div class="meta-row"><span class="meta-label">Kunde</span><span class="meta-val">${esc(cl.customer_name)}</span></div>`;
+  if(cl.site)          metaRows+=`<div class="meta-row"><span class="meta-label">Einsatzort</span><span class="meta-val">${esc(cl.site)}</span></div>`;
+  if(cl.scheduled_date)metaRows+=`<div class="meta-row"><span class="meta-label">Geplantes Datum</span><span class="meta-val">${esc(cl.scheduled_date)}</span></div>`;
+  main.innerHTML=`
+    <h2 class="page-title">${esc(cl.customer_name||"Checkliste")}</h2>
+    <div class="page-sub">Bitte alle Punkte vor dem Einsatz prüfen</div>
+    ${metaRows?`<div class="meta-table">${metaRows}</div>`:""}
+    <div class="items-label">Prüfpunkte</div>
+    <div id="itemsList"></div>
+    <button class="btn-submit" id="btnSubmit">Checkliste einreichen</button>`;
+  renderItems();
+  document.getElementById("btnSubmit").addEventListener("click",submitForm);
+}
+
+function renderItems(){
+  const listEl=document.getElementById("itemsList");
+  if(!listEl) return;
+  listEl.innerHTML="";
+  localItems.forEach((item,i)=>{
+    const card=document.createElement("div"); card.className="item";
+
+    // header — click to toggle checked
+    const head=document.createElement("div"); head.className="item-head";
+    const chk=document.createElement("div"); chk.className="item-chk"+(item.checked?" done":"");
+    chk.innerHTML=`<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const lbl=document.createElement("span"); lbl.className="item-lbl"; lbl.textContent=item.label;
+    head.appendChild(chk); head.appendChild(lbl);
+    if(item.required){const r=document.createElement("span");r.className="item-req";r.textContent="Pflicht";head.appendChild(r);}
+    head.addEventListener("click",()=>{item.checked=!item.checked;renderItems();});
+
+    // body — note + media
+    const body=document.createElement("div"); body.className="item-body";
+    const ta=document.createElement("textarea"); ta.placeholder="Anmerkung (optional)…"; ta.value=item.note||"";
+    ta.addEventListener("input",()=>{item.note=ta.value;});
+    body.appendChild(ta);
+
+    const mediaRow=document.createElement("div"); mediaRow.className="media-row";
+    (item.media||[]).forEach((m,mi)=>{
+      const t=document.createElement("div"); t.className="media-thumb";
+      if(m.pending){
+        t.innerHTML=`<div class="loading">Lädt…</div>`;
+      } else if(m.isVideo){
+        const vid=document.createElement("video"); vid.src=m.url; vid.muted=true; vid.preload="metadata"; t.appendChild(vid);
+      } else {
+        const img=document.createElement("img"); img.src=m.url; t.appendChild(img);
+      }
+      if(!m.pending){
+        const xb=document.createElement("button"); xb.className="xbtn"; xb.textContent="×";
+        xb.addEventListener("click",(e)=>{e.stopPropagation();item.media.splice(mi,1);renderItems();});
+        t.appendChild(xb);
+      }
+      mediaRow.appendChild(t);
+    });
+
+    const addLbl=document.createElement("label"); addLbl.className="add-media-lbl";
+    addLbl.textContent="+ Foto\nVideo";
+    const fin=document.createElement("input"); fin.type="file"; fin.accept="image/*,video/*"; fin.multiple=false;
+    fin.addEventListener("change",()=>handleMediaSelect(i,fin,addLbl));
+    addLbl.appendChild(fin); mediaRow.appendChild(addLbl);
+    body.appendChild(mediaRow);
+
+    card.appendChild(head); card.appendChild(body); listEl.appendChild(card);
+  });
+}
+
+async function handleMediaSelect(itemIdx,fin,btn){
+  const file=fin.files&&fin.files[0]; if(!file) return;
+  fin.value=""; // allow selecting the same file again
+  btn.classList.add("busy");
+  const isVideo=file.type.startsWith("video/");
+  const localUrl=URL.createObjectURL(file);
+  const placeholder={pending:true,isVideo,url:localUrl};
+  localItems[itemIdx].media.push(placeholder);
+  renderItems();
+  try{
+    const rawExt=file.name.split(".").pop()||"";
+    const ext=rawExt.toLowerCase()||( isVideo?"mp4":"jpg");
+    const itemId=localItems[itemIdx].id||("item-"+itemIdx);
+    // 1. Get a signed upload URL from the edge function
+    const r=await fetch(CL_FN+"?action=sign-upload&token="+encodeURIComponent(token)+
+      "&item="+encodeURIComponent(itemId)+"&ext="+encodeURIComponent(ext),{method:"POST"});
+    if(!r.ok) throw new Error("Upload-URL-Fehler "+r.status);
+    const {signedUrl,path}=await r.json();
+    // 2. Upload directly to Supabase Storage via the signed URL
+    const up=await fetch(signedUrl,{method:"PUT",body:file,headers:{"Content-Type":file.type,"x-upsert":"true"}});
+    if(!up.ok) throw new Error("Upload fehlgeschlagen "+up.status);
+    // 3. Replace placeholder with real entry
+    const idx=localItems[itemIdx].media.indexOf(placeholder);
+    if(idx>=0) localItems[itemIdx].media.splice(idx,1,{path,isVideo,url:localUrl});
+    renderItems();
+  }catch(e){
+    const idx=localItems[itemIdx].media.indexOf(placeholder);
+    if(idx>=0) localItems[itemIdx].media.splice(idx,1);
+    renderItems();
+    toast("Upload fehlgeschlagen: "+e.message,"err");
+  }finally{btn.classList.remove("busy");}
+}
+
+async function submitForm(){
+  const missing=localItems.filter(i=>i.required&&!i.checked);
+  if(missing.length){toast("Bitte alle Pflichtpunkte abhaken ("+missing.length+" offen).","err");return;}
+  const uploading=localItems.some(i=>(i.media||[]).some(m=>m.pending));
+  if(uploading){toast("Bitte warten – Upload läuft noch.","err");return;}
+  const btn=document.getElementById("btnSubmit"); btn.disabled=true; btn.textContent="Wird eingereicht…";
+  try{
+    const itemsOut=localItems.map(i=>({
+      id:i.id, label:i.label, required:i.required,
+      checked:i.checked, note:i.note||"",
+      media:(i.media||[]).filter(m=>m.path).map(m=>m.path)
+    }));
+    const r=await fetch(CL_FN+"?token="+encodeURIComponent(token),{
+      method:"PATCH", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({items:itemsOut})
+    });
+    if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||("Fehler "+r.status));}
+    main.innerHTML=`<div class="success">
+      <div class="icon">✓</div>
+      <h2>Vielen Dank!</h2>
+      <p>Ihre Checkliste wurde erfolgreich an FALU AG übermittelt.</p>
+    </div>`;
+  }catch(e){
+    toast("Einreichen fehlgeschlagen: "+e.message,"err");
+    btn.disabled=false; btn.textContent="Checkliste einreichen";
+  }
+}
+
+load();
+</script>
+</body>
+</html>

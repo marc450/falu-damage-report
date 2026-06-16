@@ -366,6 +366,54 @@
     .app,.auth,.toast,.panel,.modal{display:none !important}
     .print-host{position:static;height:auto;overflow:visible;width:auto;z-index:auto}
   }
+
+  /* ---------- checklist status badges ---------- */
+  .cl-badge{display:inline-block;font-family:var(--font-mono);font-size:9px;letter-spacing:0.1em;
+            text-transform:uppercase;padding:2px 7px;border:1px solid currentColor;vertical-align:middle;margin-left:6px}
+  .cl-badge.submitted{color:var(--navy);border-color:var(--navy)}
+  .cl-badge.pending{color:var(--ink-muted);border-color:var(--ink-muted)}
+
+  /* ---------- checklist list rows ---------- */
+  .clist{display:flex;align-items:center;gap:12px;cursor:pointer;
+         border:1px solid var(--rule);border-left:4px solid var(--navy);
+         padding:12px 14px;margin-bottom:10px;transition:background 120ms ease}
+  .clist:hover{background:var(--bg-alt)}
+  .clist-main{min-width:0;flex:1}
+  .clist-main b{color:var(--navy);font-size:14px}
+  .clist-meta{font-family:var(--font-mono);font-size:10px;letter-spacing:0.04em;
+              color:var(--ink-muted);text-transform:uppercase;margin-top:4px;line-height:1.6}
+  .clist-actions{display:flex;gap:6px;flex-shrink:0}
+  .clist-actions button{font-size:12px;padding:8px 11px;border:1px solid var(--rule);background:#fff;
+                        cursor:pointer;font-family:var(--font-sans);font-weight:500;color:var(--ink-soft)}
+  .clist-actions .open:hover{border-color:var(--navy);color:var(--navy)}
+  .clist-actions .del:hover{border-color:var(--falu-red);color:var(--falu-red)}
+
+  /* ---------- template item editor (modal) ---------- */
+  .tpl-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--rule-soft)}
+  .tpl-item input[type=text]{flex:1;font-size:14px;border:1px solid var(--rule);padding:8px 10px;font-family:var(--font-sans);min-width:0}
+  .tpl-item input[type=text]:focus{outline:none;border-color:var(--navy)}
+  .tpl-item .req-lbl{font-size:12px;color:var(--ink-soft);white-space:nowrap;display:flex;align-items:center;gap:4px;cursor:pointer}
+  .tpl-item .delbtn{appearance:none;border:1px solid var(--rule);background:#fff;color:var(--ink-soft);
+                    padding:6px 10px;font-size:13px;cursor:pointer;font-family:var(--font-sans);flex-shrink:0}
+  .tpl-item .delbtn:hover{border-color:var(--falu-red);color:var(--falu-red)}
+  .add-item-btn{appearance:none;width:100%;border:1px dashed var(--navy);background:#fff;color:var(--navy);
+                padding:10px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-sans);margin-top:8px}
+  .add-item-btn:hover{background:var(--navy);color:#fff}
+  .modal-scroll{max-height:45vh;overflow-y:auto;border:1px solid var(--rule);padding:4px 12px;margin-bottom:10px}
+
+  /* ---------- checklist detail ---------- */
+  .cl-item{border:1px solid var(--rule);margin-bottom:8px}
+  .cl-item-bar{background:var(--bg-alt);border-bottom:1px solid var(--rule);
+               padding:9px 12px;display:flex;align-items:center;gap:10px}
+  .cl-item-bar .ci-lbl{flex:1;font-weight:600;font-size:13px;color:var(--navy)}
+  .cl-item-bar .ci-req{font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-muted)}
+  .cl-item-bar .ci-chk{font-family:var(--font-mono);font-size:11px;font-weight:500}
+  .cl-item-bar .ci-chk.yes{color:var(--navy)}
+  .cl-item-bar .ci-chk.no{color:var(--ink-muted)}
+  .cl-item-body{padding:10px 12px}
+  .cl-item-note{font-size:13px;color:var(--ink-soft);margin-bottom:8px;line-height:1.45;white-space:pre-wrap}
+  .cl-item-media{display:flex;flex-wrap:wrap;gap:8px}
+  .cl-item-media img,.cl-item-media video{width:100px;height:100px;object-fit:cover;border:1px solid var(--rule);display:block}
 </style>
 </head>
 <body>
@@ -413,6 +461,7 @@
         <button class="btn btn--primary" id="btnNewReport">+&nbsp;Neues Mängelprotokoll</button>
         <button class="btn btn--ghost" id="btnMachines" style="display:none">Maschinen</button>
         <button class="btn btn--ghost" id="btnUsers2" style="display:none">Benutzer</button>
+        <button class="btn btn--ghost" id="btnChecklists">Checklisten</button>
         <button class="btn btn--ghost" id="btnReportsLogout">Abmelden</button>
       </div>
     </div>
@@ -484,6 +533,102 @@
       </div>
     </div>
     <div class="panel-body" id="viewBody"></div>
+  </div>
+</div>
+
+<!-- ===== Checklists panel ===== -->
+<div class="panel" id="checklistsView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <div class="lockup lockup--link" id="checklistsHome" title="Zu allen Berichten"><img class="applogo" alt="Falu"></div>
+      <div class="toolbtns">
+        <button class="btn btn--primary" id="btnNewChecklist">+&nbsp;Neue Checkliste</button>
+        <button class="btn btn--ghost" id="btnCLTemplates" style="display:none">Vorlagen</button>
+        <button class="btn btn--ghost" id="btnChecklistsLogout">Abmelden</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <h2 class="page-title">Bereitschafts-Checklisten</h2>
+      <div id="checklistsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Checklist detail panel ===== -->
+<div class="panel" id="checklistDetailView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <div class="lockup lockup--link" id="checklistDetailHome" title="Zu Checklisten"><img class="applogo" alt="Falu"></div>
+      <div class="toolbtns">
+        <button class="btn btn--ghost" id="btnCopyClLink">Kundenlink kopieren</button>
+        <button class="btn btn--ghost" id="btnChecklistDetailBack">Alle Checklisten</button>
+      </div>
+    </div>
+    <div class="panel-body" id="checklistDetailBody"></div>
+  </div>
+</div>
+
+<!-- ===== Templates panel (admin) ===== -->
+<div class="panel" id="templatesView">
+  <div class="panel-inner">
+    <div class="panel-bar">
+      <div class="lockup lockup--link" id="templatesHome" title="Zu Checklisten"><img class="applogo" alt="Falu"></div>
+      <div class="toolbtns">
+        <button class="btn btn--primary" id="btnNewTemplate">+&nbsp;Neue Vorlage</button>
+        <button class="btn btn--ghost" id="btnTemplatesBack">Checklisten</button>
+      </div>
+    </div>
+    <div class="panel-body">
+      <h2 class="page-title">Checklisten-Vorlagen</h2>
+      <div id="templatesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Create checklist modal ===== -->
+<div class="modal" id="newChecklistModal">
+  <div class="modal-card" style="max-width:480px">
+    <div class="modal-msg" style="font-weight:600;font-size:16px;color:var(--navy);margin-bottom:14px">Neue Checkliste</div>
+    <div style="display:grid;gap:10px;margin-bottom:16px">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Vorlage</label>
+        <select id="clTemplateSelect" style="width:100%;font-size:15px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans)"><option value="">— Vorlage wählen —</option></select>
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Kundenname</label>
+        <input type="text" id="clCustomerName" placeholder="Name des Kunden" style="width:100%;font-size:15px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans)">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Einsatzort</label>
+        <input type="text" id="clSite" placeholder="Adresse / Standort" style="width:100%;font-size:15px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans)">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Geplantes Datum</label>
+        <input type="date" id="clDate" style="width:100%;font-size:15px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans);min-height:42px">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" id="newChecklistCancel">Abbrechen</button>
+      <button class="btn btn--primary" id="newChecklistSave">Erstellen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Create template modal (admin) ===== -->
+<div class="modal" id="newTemplateModal">
+  <div class="modal-card" style="max-width:540px">
+    <div class="modal-msg" style="font-weight:600;font-size:16px;color:var(--navy);margin-bottom:10px">Neue Vorlage</div>
+    <div style="margin-bottom:10px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--navy);margin-bottom:4px">Name der Vorlage</label>
+      <input type="text" id="tplName" placeholder="z. B. Standardprüfung" style="width:100%;font-size:15px;border:1px solid var(--rule);padding:10px;font-family:var(--font-sans)">
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px">Prüfpunkte</div>
+    <div class="modal-scroll" id="tplItemsList"></div>
+    <button class="add-item-btn" id="btnAddTplItem">+ Punkt hinzufügen</button>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn--ghost" id="newTemplateCancel">Abbrechen</button>
+      <button class="btn btn--primary" id="newTemplateSave">Vorlage speichern</button>
+    </div>
   </div>
 </div>
 
@@ -1103,7 +1248,9 @@ async function restoreSession(){
 function logout(){session=null; clearSavedSession();
   document.getElementById("btnUsers2").style.display="none";
   document.getElementById("btnMachines").style.display="none";
+  document.getElementById("btnCLTemplates").style.display="none";
   reportsView.classList.remove("show");usersView.classList.remove("show");machinesView.classList.remove("show");
+  checklistsView.classList.remove("show");checklistDetailView.classList.remove("show");templatesView.classList.remove("show");
   updateAuthStatus();authGate.style.display="flex";}
 function updateAuthStatus(){
   const el=document.getElementById("authStatus");
@@ -1245,6 +1392,9 @@ const reportsView=document.getElementById("reportsView");
 const usersView=document.getElementById("usersView");
 const machinesView=document.getElementById("machinesView");
 const viewReport=document.getElementById("viewReport");
+const checklistsView=document.getElementById("checklistsView");
+const checklistDetailView=document.getElementById("checklistDetailView");
+const templatesView=document.getElementById("templatesView");
 const appEl=document.querySelector(".app");
 
 function showOnly(view){
@@ -1252,6 +1402,9 @@ function showOnly(view){
   usersView.classList.toggle("show",view==="users");
   machinesView.classList.toggle("show",view==="machines");
   viewReport.classList.toggle("show",view==="view");
+  checklistsView.classList.toggle("show",view==="checklists");
+  checklistDetailView.classList.toggle("show",view==="checklistDetail");
+  templatesView.classList.toggle("show",view==="templates");
   // Overlays are position:fixed; the base form (.app) underneath stays in flow
   // and gives the body a phantom scrollbar that scrolls nothing visible.
   // Hide the form while an overlay is open so only the panel's own scroll is active.
@@ -1279,6 +1432,15 @@ async function router(){
     if(editing){ showOnly("form"); dirty=false; setSaveStatus("idle"); syncHeaderInputs(); render(); }
     else { showOnly("view"); renderView(); }
     return;
+  }
+  if(h.indexOf("#/checklists/")===0){
+    const id=decodeURIComponent(h.slice(13));
+    showOnly("checklistDetail"); await openChecklistDetail(id); return;
+  }
+  if(h==="#/checklists"){showOnly("checklists"); await openChecklists(); return;}
+  if(h==="#/templates"){
+    if(!session.isAdmin){navigate("#/checklists");return;}
+    showOnly("templates"); await openTemplates(); return;
   }
   if(h==="#/new"){ showOnly("form"); newReport(); return; }
   showOnly("reports"); await openReports();
@@ -1778,6 +1940,274 @@ document.getElementById("machinesHome").addEventListener("click",()=>navigate("#
 document.getElementById("btnMachinesLogout").addEventListener("click",logout);
 document.getElementById("btnAddMachine").addEventListener("click",addMachine);
 document.getElementById("newMachine").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addMachine();}});
+
+/* ========== Customer Readiness Checklists ========== */
+const SB_TEMPLATES="falu_checklist_templates";
+const SB_CHECKLISTS="falu_checklists";
+const SB_CL_BUCKET="falu-checklist-media";
+
+let _templates=[]; // cached for the create-checklist dropdown
+let _currentChecklist=null; // loaded in detail view
+let _tplItems=[]; // working list while building a template in the modal
+
+/* ---- Template item editor ---- */
+function renderTplItems(){
+  const el=document.getElementById("tplItemsList"); el.innerHTML="";
+  if(!_tplItems.length){const e=document.createElement("div");e.className="empty";e.textContent="Noch keine Punkte.";el.appendChild(e);return;}
+  _tplItems.forEach((item,i)=>{
+    const row=document.createElement("div"); row.className="tpl-item";
+    const inp=document.createElement("input"); inp.type="text"; inp.value=item.label; inp.placeholder="Prüfpunkt beschreiben…";
+    inp.addEventListener("input",()=>{item.label=inp.value;});
+    const lbl=document.createElement("label"); lbl.className="req-lbl";
+    const chk=document.createElement("input"); chk.type="checkbox"; chk.checked=!!item.required;
+    chk.addEventListener("change",()=>{item.required=chk.checked;});
+    lbl.appendChild(chk); lbl.appendChild(document.createTextNode(" Pflicht"));
+    const del=document.createElement("button"); del.type="button"; del.className="delbtn"; del.textContent="×";
+    del.addEventListener("click",()=>{_tplItems.splice(i,1);renderTplItems();});
+    row.appendChild(inp); row.appendChild(lbl); row.appendChild(del); el.appendChild(row);
+  });
+}
+function openNewTemplateModal(){
+  _tplItems=[{id:crypto.randomUUID(),label:"",required:false}];
+  document.getElementById("tplName").value="";
+  renderTplItems();
+  document.getElementById("newTemplateModal").classList.add("show");
+}
+function closeNewTemplateModal(){document.getElementById("newTemplateModal").classList.remove("show");}
+document.getElementById("btnAddTplItem").addEventListener("click",()=>{
+  _tplItems.push({id:crypto.randomUUID(),label:"",required:false});renderTplItems();
+});
+document.getElementById("newTemplateCancel").addEventListener("click",closeNewTemplateModal);
+document.getElementById("newTemplateModal").addEventListener("click",(e)=>{if(e.target===e.currentTarget)closeNewTemplateModal();});
+document.getElementById("newTemplateSave").addEventListener("click",async()=>{
+  const name=document.getElementById("tplName").value.trim();
+  if(!name){toast("Name erforderlich.","err");return;}
+  const items=_tplItems.filter(i=>i.label.trim());
+  if(!items.length){toast("Mindestens ein Prüfpunkt erforderlich.","err");return;}
+  const btn=document.getElementById("newTemplateSave"); btn.disabled=true;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TEMPLATES,
+      {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=minimal"},
+       body:JSON.stringify({name,items,created_by:session.userId})});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    closeNewTemplateModal(); toast("Vorlage gespeichert ✓","ok"); await openTemplates();
+  }catch(e){toast("Fehler: "+e.message,"err");}
+  finally{btn.disabled=false;}
+});
+
+/* ---- Templates list (admin panel) ---- */
+async function openTemplates(){
+  const listEl=document.getElementById("templatesList"); listEl.innerHTML="<p class='hint'>Laden…</p>";
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TEMPLATES+"?select=id,name,items,created_at&order=created_at.desc");
+    const rows=await r.json();
+    if(!r.ok) throw new Error((rows&&rows.message)||("Fehler "+r.status));
+    _templates=rows;
+    if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Vorlagen. Füge oben eine hinzu.</div>";return;}
+    listEl.innerHTML="";
+    rows.forEach(t=>{
+      const el=document.createElement("div"); el.className="urow";
+      const left=document.createElement("div"); left.className="em";
+      left.innerHTML=esc(t.name)+"<div class='rl'>"+(t.items?t.items.length:0)+" Prüfpunkte</div>";
+      const act=document.createElement("div"); act.className="urow-actions";
+      const del=document.createElement("button"); del.textContent="Löschen";
+      del.addEventListener("click",()=>deleteTemplate(t));
+      act.appendChild(del); el.appendChild(left); el.appendChild(act); listEl.appendChild(el);
+    });
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+async function deleteTemplate(t){
+  if(!await modalConfirm("Vorlage „"+t.name+"\" löschen?",{okLabel:"Löschen",danger:true})) return;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TEMPLATES+"?id=eq."+encodeURIComponent(t.id),
+      {method:"DELETE",headers:{"Prefer":"return=minimal"}});
+    if(!r.ok){const tx=await r.text();throw new Error("("+r.status+") "+tx.slice(0,140));}
+    toast("Vorlage gelöscht","ok"); await openTemplates();
+  }catch(e){toast("Fehler: "+e.message,"err");}
+}
+
+/* ---- Create checklist modal ---- */
+async function openNewChecklistModal(){
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_TEMPLATES+"?select=id,name,items&order=created_at.desc");
+    const rows=await r.json(); _templates=r.ok?rows:[];
+  }catch(_){_templates=[];}
+  const sel=document.getElementById("clTemplateSelect");
+  sel.innerHTML="<option value=''>— Vorlage wählen —</option>"+
+    _templates.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
+  document.getElementById("clCustomerName").value="";
+  document.getElementById("clSite").value="";
+  document.getElementById("clDate").value=new Date().toISOString().slice(0,10);
+  document.getElementById("newChecklistModal").classList.add("show");
+  document.getElementById("clCustomerName").focus();
+}
+function closeNewChecklistModal(){document.getElementById("newChecklistModal").classList.remove("show");}
+document.getElementById("newChecklistCancel").addEventListener("click",closeNewChecklistModal);
+document.getElementById("newChecklistModal").addEventListener("click",(e)=>{if(e.target===e.currentTarget)closeNewChecklistModal();});
+document.getElementById("newChecklistSave").addEventListener("click",async()=>{
+  const templateId=document.getElementById("clTemplateSelect").value;
+  const customerName=document.getElementById("clCustomerName").value.trim();
+  const site=document.getElementById("clSite").value.trim();
+  const scheduledDate=document.getElementById("clDate").value||null;
+  if(!templateId){toast("Bitte Vorlage wählen.","err");return;}
+  if(!customerName){toast("Kundenname erforderlich.","err");return;}
+  const tpl=_templates.find(t=>t.id===templateId);
+  if(!tpl){toast("Vorlage nicht gefunden.","err");return;}
+  const btn=document.getElementById("newChecklistSave"); btn.disabled=true;
+  try{
+    const items=(tpl.items||[]).map(i=>Object.assign({},i,{checked:false,note:"",media:[]}));
+    const body={template_id:templateId,customer_name:customerName,site:site||null,
+                scheduled_date:scheduledDate,items,created_by:session.userId,status:"pending"};
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_CHECKLISTS,
+      {method:"POST",headers:{"Content-Type":"application/json","Prefer":"return=representation"},
+       body:JSON.stringify(body)});
+    const j=await r.json();
+    if(!r.ok) throw new Error((j&&j.message)||("Fehler "+r.status));
+    const row=Array.isArray(j)?j[0]:j;
+    closeNewChecklistModal(); navigate("#/checklists/"+row.id);
+  }catch(e){toast("Fehler: "+e.message,"err");}
+  finally{btn.disabled=false;}
+});
+
+/* ---- Checklists list ---- */
+async function openChecklists(){
+  document.getElementById("btnCLTemplates").style.display=session.isAdmin?"":"none";
+  const listEl=document.getElementById("checklistsList"); listEl.innerHTML="<p class='hint'>Laden…</p>";
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_CHECKLISTS+
+      "?select=id,customer_name,site,scheduled_date,status,customer_token,created_at&order=created_at.desc");
+    const rows=await r.json();
+    if(!r.ok) throw new Error((rows&&rows.message)||("Fehler "+r.status));
+    if(!rows.length){listEl.innerHTML="<div class='empty'>Keine Checklisten. Erstelle oben eine neue.</div>";return;}
+    listEl.innerHTML="";
+    rows.forEach(row=>{
+      const el=document.createElement("div"); el.className="clist";
+      const badge=`<span class="cl-badge ${row.status}">${row.status==="submitted"?"Eingereicht":"Ausstehend"}</span>`;
+      const main=document.createElement("div"); main.className="clist-main";
+      main.innerHTML="<b>"+esc(row.customer_name||"—")+badge+"</b><div class='clist-meta'>"
+        +(row.site?esc(row.site)+" · ":"")+(row.scheduled_date||"Kein Datum")+"</div>";
+      const act=document.createElement("div"); act.className="clist-actions";
+      const cp=document.createElement("button"); cp.className="open"; cp.textContent="Link kopieren";
+      cp.addEventListener("click",(e)=>{e.stopPropagation();copyChecklistLink(row.customer_token);});
+      const del=document.createElement("button"); del.className="del"; del.textContent="Löschen";
+      del.addEventListener("click",(e)=>{e.stopPropagation();deleteChecklist(row.id);});
+      act.appendChild(cp); act.appendChild(del);
+      el.appendChild(main); el.appendChild(act);
+      el.addEventListener("click",()=>navigate("#/checklists/"+row.id));
+      listEl.appendChild(el);
+    });
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    listEl.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+
+/* ---- Checklist detail ---- */
+async function openChecklistDetail(id){
+  const body=document.getElementById("checklistDetailBody");
+  body.innerHTML="<p class='hint'>Laden…</p>"; _currentChecklist=null;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_CHECKLISTS+"?id=eq."+encodeURIComponent(id)+"&select=*");
+    const arr=await r.json();
+    if(!r.ok) throw new Error((arr&&arr.message)||("Fehler "+r.status));
+    if(!arr[0]) throw new Error("Nicht gefunden.");
+    _currentChecklist=arr[0]; renderChecklistDetail(arr[0]);
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    body.innerHTML="<p class='hint'>Fehler: "+esc(e.message)+"</p>";
+  }
+}
+function renderChecklistDetail(row){
+  const submitted=row.status==="submitted";
+  const badge=`<span class="cl-badge ${row.status}">${submitted?"Eingereicht":"Ausstehend"}</span>`;
+  let html=`<h2 class="page-title">${esc(row.customer_name||"—")}${badge}</h2>`;
+  html+=`<div class="vmeta">
+    <div class="vrow"><span class="vlabel">Kundenname</span><span class="vval">${esc(row.customer_name||"—")}</span></div>
+    <div class="vrow"><span class="vlabel">Einsatzort</span><span class="vval">${esc(row.site||"—")}</span></div>
+    <div class="vrow"><span class="vlabel">Geplantes Datum</span><span class="vval">${esc(row.scheduled_date||"—")}</span></div>
+    <div class="vrow"><span class="vlabel">Status</span><span class="vval">${submitted?"Eingereicht ✓":"Ausstehend"}</span></div>
+  </div>`;
+  const items=row.items||[];
+  html+=`<div class="vsec">Prüfpunkte (${items.length})</div>`;
+  if(!submitted){
+    html+=`<div class="vnote">Der Kunde hat diese Checkliste noch nicht eingereicht.</div>`;
+  }
+  items.forEach(item=>{
+    const checked=!!item.checked;
+    html+=`<div class="cl-item">
+      <div class="cl-item-bar">
+        <span class="ci-chk ${checked?"yes":"no"}">${checked?"✓":"○"}</span>
+        <span class="ci-lbl">${esc(item.label)}</span>
+        ${item.required?`<span class="ci-req">Pflicht</span>`:""}
+      </div>`;
+    if(submitted&&(item.note||(item.media&&item.media.length))){
+      html+=`<div class="cl-item-body">`;
+      if(item.note) html+=`<div class="cl-item-note">${esc(item.note)}</div>`;
+      if(item.media&&item.media.length){
+        html+=`<div class="cl-item-media">`;
+        item.media.forEach(path=>{
+          const isVideo=/\.(mp4|mov|webm|avi)$/i.test(path);
+          if(isVideo) html+=`<video data-cl-path="${esc(path)}" controls muted preload="metadata"></video>`;
+          else        html+=`<img data-cl-path="${esc(path)}" alt="">`;
+        });
+        html+=`</div>`;
+      }
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  });
+  const bodyEl=document.getElementById("checklistDetailBody");
+  bodyEl.innerHTML=html;
+  // Sign storage URLs for media
+  bodyEl.querySelectorAll("[data-cl-path]").forEach(async el=>{
+    const path=el.getAttribute("data-cl-path");
+    try{
+      const r=await authFetch(SUPABASE_URL+"/storage/v1/object/sign/"+SB_CL_BUCKET+"/"+path,
+        {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({expiresIn:3600})});
+      const j=await r.json();
+      if(r.ok) el.src=SUPABASE_URL+"/storage/v1"+j.signedURL;
+    }catch(_){}
+  });
+}
+function copyChecklistLink(token){
+  const url=location.origin+location.pathname.replace(/[^/]*$/,"")+"fill.html?token="+token;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url);}
+    else{const ta=document.createElement("textarea");ta.value=url;ta.style.cssText="position:fixed;opacity:0";
+      document.body.appendChild(ta);ta.focus();ta.select();document.execCommand("copy");document.body.removeChild(ta);}
+    toast("Kundenlink kopiert ✓","ok");
+  }catch(e){toast("Link konnte nicht kopiert werden.","err");}
+}
+async function deleteChecklist(id){
+  if(!await modalConfirm("Checkliste löschen?",{okLabel:"Löschen",danger:true})) return;
+  try{
+    const r=await authFetch(SUPABASE_URL+"/rest/v1/"+SB_CHECKLISTS+"?id=eq."+encodeURIComponent(id),
+      {method:"DELETE",headers:{"Prefer":"return=minimal"}});
+    if(!r.ok){const t=await r.text();throw new Error("("+r.status+") "+t.slice(0,140));}
+    toast("Checkliste gelöscht","ok"); navigate("#/checklists");
+  }catch(e){
+    if(e.message==="SESSION_EXPIRED"){authGate.style.display="flex";return;}
+    toast("Fehler: "+e.message,"err");
+  }
+}
+
+/* ---- Checklist event listeners ---- */
+document.getElementById("checklistsHome").addEventListener("click",()=>navigate("#/reports"));
+document.getElementById("checklistDetailHome").addEventListener("click",()=>navigate("#/checklists"));
+document.getElementById("templatesHome").addEventListener("click",()=>navigate("#/checklists"));
+document.getElementById("btnTemplatesBack").addEventListener("click",()=>navigate("#/checklists"));
+document.getElementById("btnChecklistsLogout").addEventListener("click",logout);
+document.getElementById("btnChecklists").addEventListener("click",()=>navigate("#/checklists"));
+document.getElementById("btnCLTemplates").addEventListener("click",()=>navigate("#/templates"));
+document.getElementById("btnNewTemplate").addEventListener("click",openNewTemplateModal);
+document.getElementById("btnNewChecklist").addEventListener("click",openNewChecklistModal);
+document.getElementById("btnChecklistDetailBack").addEventListener("click",()=>navigate("#/checklists"));
+document.getElementById("btnCopyClLink").addEventListener("click",()=>{
+  if(_currentChecklist) copyChecklistLink(_currentChecklist.customer_token);
+});
 
 document.getElementById("btnAdd").addEventListener("click",()=>addDefect());
 addDefect();
